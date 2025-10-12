@@ -337,7 +337,8 @@ static void freePreparedStmt (sqlStmtType sqlStatement)
       FREE_TABLE(preparedStmt->param_array, bindDataRecordLite, preparedStmt->param_array_size);
     } /* if */
     sqlite3_finalize(preparedStmt->ppStmt);
-    if (preparedStmt->db->usage_count != 0) {
+    if (preparedStmt->db != NULL &&
+        preparedStmt->db->usage_count != 0) {
       preparedStmt->db->usage_count--;
       if (preparedStmt->db->usage_count == 0) {
         logMessage(printf("FREE " FMT_U_MEM "\n", (memSizeType) preparedStmt->db););
@@ -802,9 +803,12 @@ static void sqlBindDuration (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindDuration: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year < -9999 || year > 9999 || month < -12 || month > 12 ||
-                        day < -31 || day > 31 || hour <= -24 || hour >= 24 ||
-                        minute <= -60 || minute >= 60 || second <= -60 || second >= 60 ||
+    } else if (unlikely(year < -9999 || year > 9999 ||
+                        month < -12 || month > 12 ||
+                        day < -31 || day > 31 ||
+                        hour <= -24 || hour >= 24 ||
+                        minute <= -60 || minute >= 60 ||
+                        second <= -60 || second >= 60 ||
                         micro_second <= -1000000 || micro_second >= 1000000)) {
       logError(printf("sqlBindDuration: Duration not in allowed range.\n"););
       raise_error(RANGE_ERROR);
@@ -1122,9 +1126,12 @@ static void sqlBindTime (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindTime: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year < -999 || year > 9999 || month < 1 || month > 12 ||
-                        day < 1 || day > 31 || hour < 0 || hour >= 24 ||
-                        minute < 0 || minute >= 60 || second < 0 || second >= 60 ||
+    } else if (unlikely(year < -999 || year > 9999 ||
+                        month < 1 || month > 12 ||
+                        day < 1 || day > 31 ||
+                        hour < 0 || hour >= 24 ||
+                        minute < 0 || minute >= 60 ||
+                        second < 0 || second >= 60 ||
                         micro_second < 0 || micro_second >= 1000000)) {
       logError(printf("sqlBindTime: Time not in allowed range.\n"););
       raise_error(RANGE_ERROR);
@@ -1906,9 +1913,9 @@ static void sqlExecute (sqlStmtType sqlStatement)
       /* printf("ppStmt: %lx\n", (unsigned long) preparedStmt->ppStmt); */
       if (preparedStmt->executeSuccessful) {
         if (unlikely(sqlite3_reset(preparedStmt->ppStmt) != SQLITE_OK)) {
-          setDbErrorMsg("sqlBindTime", "sqlite3_reset",
+          setDbErrorMsg("sqlExecute", "sqlite3_reset",
                         sqlite3_db_handle(preparedStmt->ppStmt));
-          logError(printf("sqlBindTime: sqlite3_reset error: %s\n",
+          logError(printf("sqlExecute: sqlite3_reset error: %s\n",
                           sqlite3_errmsg(sqlite3_db_handle(preparedStmt->ppStmt))););
           err_info = DATABASE_ERROR;
         } /* if */
@@ -2046,6 +2053,7 @@ static sqlStmtType sqlPrepare (databaseType database,
     cstriType query;
     memSizeType queryLength;
     int prepare_result;
+    sqlite3_stmt *ppStmt = NULL;
     int column_count;
     errInfoType err_info = OKAY_NO_ERROR;
     preparedStmtType preparedStmt;
@@ -2072,36 +2080,37 @@ static sqlStmtType sqlPrepare (databaseType database,
                           queryLength););
           err_info = RANGE_ERROR;
           preparedStmt = NULL;
-        } else if (unlikely(!ALLOC_RECORD2(preparedStmt, preparedStmtRecordLite,
-                                           count.prepared_stmt, count.prepared_stmt_bytes))) {
-          err_info = MEMORY_ERROR;
         } else {
-          memset(preparedStmt, 0, sizeof(preparedStmtRecordLite));
           prepare_result = sqlite3_prepare(db->connection,
                                            query,
                                            (int) queryLength,
-                                           &preparedStmt->ppStmt,
+                                           &ppStmt,
                                            NULL);
           if (unlikely(prepare_result != SQLITE_OK)) {
             setDbErrorMsg("sqlPrepare", "sqlite3_prepare", db->connection);
             logError(printf("sqlPrepare: sqlite3_prepare error %d: %s\n",
                             prepare_result, sqlite3_errmsg(db->connection)););
-            FREE_RECORD2(preparedStmt, preparedStmtRecordLite,
-                         count.prepared_stmt, count.prepared_stmt_bytes);
             err_info = DATABASE_ERROR;
             preparedStmt = NULL;
           } else {
-            column_count = sqlite3_column_count(preparedStmt->ppStmt);
+            column_count = sqlite3_column_count(ppStmt);
             if (unlikely(column_count < 0)) {
               dbInconsistent("sqlPrepare", "sqlite3_column_count");
               logError(printf("sqlPrepare: Sqlite3_column_count "
                               "returns negative column count: %d\n",
                               column_count););
               err_info = DATABASE_ERROR;
-              preparedStmt->param_array = NULL;
+              sqlite3_finalize(ppStmt);
+              preparedStmt = NULL;
+            } else if (unlikely(!ALLOC_RECORD2(preparedStmt, preparedStmtRecordLite,
+                                           count.prepared_stmt, count.prepared_stmt_bytes))) {
+              err_info = MEMORY_ERROR;
+              sqlite3_finalize(ppStmt);
             } else {
+              memset(preparedStmt, 0, sizeof(preparedStmtRecordLite));
               preparedStmt->usage_count = 1;
               preparedStmt->sqlFunc = db->sqlFunc;
+              preparedStmt->ppStmt = ppStmt;
               preparedStmt->result_column_count = (unsigned int) column_count;
               preparedStmt->executeSuccessful = FALSE;
               preparedStmt->fetchOkay = FALSE;
@@ -2111,10 +2120,10 @@ static sqlStmtType sqlPrepare (databaseType database,
                 db->usage_count++;
               } /* if */
               err_info = setupParameters(preparedStmt);
-            } /* if */
-            if (unlikely(err_info != OKAY_NO_ERROR)) {
-              freePreparedStmt((sqlStmtType) preparedStmt);
-              preparedStmt = NULL;
+              if (unlikely(err_info != OKAY_NO_ERROR)) {
+                freePreparedStmt((sqlStmtType) preparedStmt);
+                preparedStmt = NULL;
+              } /* if */
             } /* if */
           } /* if */
         } /* if */
@@ -2376,7 +2385,13 @@ databaseType sqlOpenLite (const const_striType host, intType port,
         /* err_info was set before. */
         database = NULL;
       } else {
+        logMessage(printf("sqlOpenLite: sqlite3_open(%s%s%s, *)\n",
+                          fileName8 == NULL ? "" : "\"",
+                          fileName8 == NULL ? "NULL" : fileName8,
+                          fileName8 == NULL ? "" : "\""););
         open_result = sqlite3_open(fileName8, &connection);
+        logMessage(printf("sqlOpenPost: open_result: %d\n",
+                          open_result););
         if (open_result != SQLITE_OK) {
           if (connection != NULL) {
             setDbErrorMsg("sqlOpenLite", "sqlite3_open", connection);

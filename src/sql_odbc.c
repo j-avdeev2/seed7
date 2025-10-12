@@ -32,6 +32,8 @@
 #define LOG_FUNCTIONS 0
 #define VERBOSE_EXCEPTIONS 0
 
+#define LOG_CLI_FUNCTIONS 0
+
 #include "version.h"
 
 #include "stdlib.h"
@@ -175,11 +177,11 @@ static boolType connectToServer (connectDataType connectData,
     SQLRETURN returnCode;
 
   /* connectToServer */
-    logFunction(printf("connectToServer(*, *, \"");
-                printWstri(driver);
-                printf("\", " FMT_U_MEM ", \"", driverLength);
-                printWstri(server);
-                printf("\", " FMT_U_MEM ")\n", serverLength););
+    logFunction(printf("connectToServer(*, " FMT_U_MEM ", \"%s\", " FMT_U_MEM,
+                       (memSizeType) sql_connection,
+                       sqlwstriAsUnquotedCStri(driver), driverLength);
+                printf(", \"%s\", " FMT_U_MEM ")\n",
+                       sqlwstriAsUnquotedCStri(server), serverLength););
     memcpy(inConnectionString, driverKey, STRLEN(driverKey) * sizeof(SQLWCHAR));
     stringLength = STRLEN(driverKey);
     memcpy(&inConnectionString[stringLength], driver, driverLength * sizeof(SQLWCHAR));
@@ -215,9 +217,8 @@ static boolType connectToServer (connectDataType connectData,
       stringLength += connectData->passwordW_length;
     } /* if */
     inConnectionString[stringLength] = '\0';
-    /* printf("inConnectionString: ");
-       printWstri(inConnectionString);
-       printf("\n"); */
+    logMessage(printf("inConnectionString: %s\n",
+                      sqlwstriAsUnquotedCStri(inConnectionString)););
     outConnectionString[0] = '\0';
     returnCode = SQLDriverConnectW(sql_connection,
                                    NULL, /* GetDesktopWindow(), */
@@ -227,10 +228,9 @@ static boolType connectToServer (connectDataType connectData,
                                    sizeof(outConnectionString) / sizeof(SQLWCHAR),
                                    &outConnectionStringLength,
                                    SQL_DRIVER_NOPROMPT);
-    /* printf("returnCode: %d\n", returnCode); */
-    /* printf("outConnectionString: ");
-       printWstri(outConnectionString);
-       printf("\n"); */
+    logMessage(printf("returnCode: %d\n", returnCode);
+               printf("outConnectionString: %s\n",
+                      sqlwstriAsUnquotedCStri(outConnectionString)););
     if (returnCode != SQL_SUCCESS && returnCode != SQL_SUCCESS_WITH_INFO) {
       setDbErrorMsg("connectToServer", "SQLDriverConnectW",
                     SQL_HANDLE_DBC, sql_connection);
@@ -264,23 +264,22 @@ static boolType connectToDriver (connectDataType connectData,
     boolType okay = FALSE;
 
   /* connectToDriver */
-    logFunction(printf("connectToDriver(*, *, \"");
-                printWstri(driver);
-                printf("\", " FMT_U_MEM ")\n", driverLength););
+    logFunction(printf("connectToDriver(*, " FMT_U_MEM ", \"%s\", " FMT_U_MEM ")\n",
+                       (memSizeType) sql_connection,
+                       sqlwstriAsUnquotedCStri(driver),
+                       driverLength););
     regularNameOfSearchedServer = getRegularName(connectData->serverW,
         connectData->serverW_length);
     if (regularNameOfSearchedServer != NULL) {
-      /* printf("Searching for server: ");
-         printWstri(regularNameOfSearchedServer);
-         printf("\n"); */
+      logMessage(printf("Searching for server: %s\n",
+                        sqlwstriAsUnquotedCStri(regularNameOfSearchedServer)););
       memcpy(inConnectionString, driverKey, STRLEN(driverKey) * sizeof(SQLWCHAR));
       stringLength = STRLEN(driverKey);
       memcpy(&inConnectionString[stringLength], driver, driverLength * sizeof(SQLWCHAR));
       stringLength += driverLength;
       inConnectionString[stringLength] = '\0';
-      /* printf("inConnectionString: ");
-         printWstri(inConnectionString);
-         printf("\n"); */
+      logMessage(printf("inConnectionString: %s\n",
+                        sqlwstriAsUnquotedCStri(inConnectionString)););
       outConnectionString[0] = '\0';
       returnCode = SQLBrowseConnectW(sql_connection,
                                      (SQLWCHAR *) inConnectionString,
@@ -288,10 +287,9 @@ static boolType connectToDriver (connectDataType connectData,
                                      outConnectionString,
                                      sizeof(outConnectionString) / sizeof(SQLWCHAR),
                                      &outConnectionStringLength);
-      /* printf("returnCode: %d\n", returnCode); */
-      /* printf("outConnectionString: ");
-         printWstri(outConnectionString);
-         printf("\n"); */
+      logMessage(printf("returnCode: %d\n", returnCode);
+                 printf("outConnectionString: %s\n",
+                        sqlwstriAsUnquotedCStri(outConnectionString)););
       if (returnCode == SQL_SUCCESS || returnCode == SQL_SUCCESS_WITH_INFO ||
           returnCode == SQL_NEED_DATA) {
         SQLDisconnect(sql_connection);
@@ -317,15 +315,13 @@ static boolType connectToDriver (connectDataType connectData,
               if (ALLOC_SQLWSTRI(serverName, serverNameLength)) {
                 memcpy(serverName, server, serverNameLength * sizeof(SQLWCHAR));
                 serverName[serverNameLength] = '\0';
-                /* printf("check for server: ");
-                   printWstri(serverName);
-                   printf("\n"); */
+                logMessage(printf("check for server: %s\n",
+                                  sqlwstriAsUnquotedCStri(serverName)););
                 regularServerName = getRegularName(serverName, serverNameLength);
                 if (regularServerName != NULL) {
                   if (wstriSearch(regularServerName, regularNameOfSearchedServer) != NULL) {
-                    /* printf("server that matches requested one: ");
-                       printWstri(serverName);
-                       printf("\n"); */
+                    logMessage(printf("server that matches requested one: %s\n",
+                                      sqlwstriAsUnquotedCStri(serverName)););
                     okay = connectToServer(connectData, sql_connection,
                                            driver, (memSizeType) driverLength,
                                            serverName, serverNameLength);
@@ -371,9 +367,8 @@ static boolType driverConnect (connectDataType connectData, SQLHDBC sql_connecti
       regularNameOfSearchedDriver = getRegularName(connectData->driverW,
           connectData->driverW_length);
       if (regularNameOfSearchedDriver != NULL) {
-        /* printf("Searching for driver: ");
-           printWstri(regularNameOfSearchedDriver);
-           printf("\n"); */
+        logMessage(printf("Searching for driver: %s\n",
+                          sqlwstriAsUnquotedCStri(regularNameOfSearchedDriver)););
         direction = SQL_FETCH_FIRST;
         while (!okay &&
                SQLDriversW(sql_environment, direction, driver,
@@ -381,14 +376,11 @@ static boolType driverConnect (connectDataType connectData, SQLHDBC sql_connecti
                            attr, sizeof(attr) / sizeof(SQLWCHAR),
                            &attrLength) == SQL_SUCCESS) {
           direction = SQL_FETCH_NEXT;
-          /* printWstri(driver);
-          printf("\n"); */
           regularDriverName = getRegularName(driver, (memSizeType) driverLength);
           if (regularDriverName != NULL) {
             if (wstriSearch(regularDriverName, regularNameOfSearchedDriver) != NULL) {
-              /* printf("driver that matches requested one: ");
-                 printWstri(driver);
-                 printf("\n"); */
+              logMessage(printf("driver that matches requested one: %s\n",
+                                sqlwstriAsUnquotedCStri(driver)););
               okay = connectToDriver(connectData, sql_connection, driver,
                                      (memSizeType) driverLength);
             } /* if */
@@ -419,17 +411,16 @@ static void listDrivers (connectDataType connectData, SQLHDBC sql_connection,
   /* listDrivers */
     printf("Available odbc drivers:\n");
     direction = SQL_FETCH_FIRST;
+    memset(driver, 0, sizeof(driver));
+    memset(attr, 0, sizeof(attr));
     while (SQLDriversW(sql_environment, direction,
                        driver, sizeof(driver) / sizeof(SQLWCHAR), &driverLength,
                        attr, sizeof(attr) / sizeof(SQLWCHAR), &attrLength) == SQL_SUCCESS) {
       direction = SQL_FETCH_NEXT;
-      printWstri(driver);
-      printf("\n");
+      printf("%s\n", sqlwstriAsUnquotedCStri(driver));
       attrPtr = attr;
       while (*attrPtr != '\0') {
-        printf("  ");
-        printWstri(attrPtr);
-        printf("\n");
+        printf("  %s\n", sqlwstriAsUnquotedCStri(attrPtr));
         while (*attrPtr != '\0') {
           attrPtr++;
         } /* while */
@@ -472,8 +463,8 @@ databaseType sqlOpenOdbc (const const_striType driver,
 
   {
     connectDataRecord connectData;
-    SQLHENV sql_environment;
-    SQLHDBC sql_connection;
+    SQLHENV sql_environment = NULL;
+    SQLHDBC sql_connection = NULL;
     SQLRETURN returnCode;
     errInfoType err_info = OKAY_NO_ERROR;
     databaseType database;
@@ -488,7 +479,7 @@ databaseType sqlOpenOdbc (const const_striType driver,
       logError(printf("sqlOpenOdbc: findDll() failed\n"););
       err_info = DATABASE_ERROR;
       database = NULL;
-    } else if (unlikely((connectData.driverW =  stri_to_sqlwstri(driver,
+    } else if (unlikely((connectData.driverW = stri_to_sqlwstri(driver,
                              &connectData.driverW_length, &err_info)) == NULL)) {
       database = NULL;
     } else {
@@ -522,11 +513,26 @@ databaseType sqlOpenOdbc (const const_striType driver,
                   database = NULL;
                 } else {
                   if (connectData.driverW_length == 0 && connectData.serverW_length == 0) {
+                    logMessage(printf("sqlOpenOdbc: SQLConnectW(" FMT_U_MEM
+                                      ", %s%s%s, " FMT_U_MEM,
+                                      (memSizeType) sql_connection,
+                                      connectData.dbNameW == NULL ? "" : "\"",
+                                      connectData.dbNameW == NULL ? "NULL" :
+                                          sqlwstriAsUnquotedCStri(connectData.dbNameW),
+                                      connectData.dbNameW == NULL ? "" : "\"",
+                                      connectData.dbNameW_length);
+                               printf(", %s%s%s, " FMT_U_MEM ", *, *)\n",
+                                      connectData.userW == NULL ? "" : "\"",
+                                      connectData.userW == NULL ? "NULL" :
+                                          sqlwstriAsUnquotedCStri(connectData.userW),
+                                      connectData.userW == NULL ? "" : "\"",
+                                      connectData.userW_length););
                     returnCode = SQLConnectW(sql_connection,
                         (SQLWCHAR *) connectData.dbNameW, (SQLSMALLINT) connectData.dbNameW_length,
                         (SQLWCHAR *) connectData.userW, (SQLSMALLINT) connectData.userW_length,
                         (SQLWCHAR *) connectData.passwordW, (SQLSMALLINT) connectData.passwordW_length);
-                    logMessage(printf("SQLConnectW returns " FMT_D16 "\n", returnCode););
+                    logMessage(printf("sqlOpenOdbc: SQLConnectW returns " FMT_D16 "\n",
+                                      returnCode););
                   } else {
                     returnCode = SQL_ERROR;
                   } /* if */

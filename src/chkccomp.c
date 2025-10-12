@@ -374,6 +374,7 @@ static const char *makeDirDefinition = NULL;
 static const char *removeDirDefinition = NULL;
 
 static int supportsPartialLinking = 0;
+static const char *linkerOptPartialLinking = NULL;
 
 
 
@@ -2902,6 +2903,10 @@ static void defineTransferUnions (char * buffer)
       case 2: strcat(buffer, uint16TypeStri); break;
       case 4: strcat(buffer, uint32TypeStri); break;
       case 8: strcat(buffer, uint64TypeStri); break;
+      default:
+        fprintf(logFile, "\n ***** Size of float (%d) is not in {2, 4, 8}\n",
+                sizeof_float);
+        break;
     } /* switch */
     strcat(buffer,
            " i;\n"
@@ -2914,6 +2919,10 @@ static void defineTransferUnions (char * buffer)
       case 2: strcat(buffer, uint16TypeStri); break;
       case 4: strcat(buffer, uint32TypeStri); break;
       case 8: strcat(buffer, uint64TypeStri); break;
+      default:
+        fprintf(logFile, "\n ***** Size of double (%d) is not in {2, 4, 8}\n",
+                sizeof_double);
+        break;
     } /* switch */
     strcat(buffer,
            " i;\n"
@@ -7411,7 +7420,7 @@ static void determinePartialLinking (FILE *versionFile)
 
   {
 #ifdef POTENTIAL_PARTIAL_LINKING_OPTIONS
-    const char *potentialPartialLinkingOptions[] = { POTENTIAL_PARTIAL_LINKING_OPTIONS };
+    static const char *potentialPartialLinkingOptions[] = { POTENTIAL_PARTIAL_LINKING_OPTIONS };
 #endif
     unsigned int pos;
     char buffer[BUFFER_SIZE];
@@ -7424,6 +7433,7 @@ static void determinePartialLinking (FILE *versionFile)
       supportsPartialLinking = checkPartialLinking(potentialPartialLinkingOptions[pos]);
       if (supportsPartialLinking) {
         fprintf(logFile, " Supported.\n");
+        linkerOptPartialLinking = potentialPartialLinkingOptions[pos];
         fprintf(versionFile, "#define LINKER_OPT_PARTIAL_LINKING \"%s\"\n",
                 potentialPartialLinkingOptions[pos]);
         sprintf(buffer, "LINKER_OPT_PARTIAL_LINKING = %s\n",
@@ -7947,16 +7957,19 @@ static int canLoadDynamicLibrary (const char *dllName)
 
   /* canLoadDynamicLibrary */
 #if LIBRARY_TYPE == WINDOWS_LIBRARIES
-    for (srcChar = &dllName[0], destChar = dllPath;
-         *srcChar != '\0';
-         srcChar++) {
-      if (*srcChar == '/' || *srcChar == '\\') {
-        *destChar++ = '\\';
-        *destChar++ = '\\';
-      } else {
-        *destChar++ = *srcChar;
-      } /* if */
-    } /* for */
+    destChar = dllPath;
+    if (dllName != NULL) {
+      for (srcChar = &dllName[0];
+           *srcChar != '\0';
+           srcChar++) {
+        if (*srcChar == '/' || *srcChar == '\\') {
+          *destChar++ = '\\';
+          *destChar++ = '\\';
+        } else {
+          *destChar++ = *srcChar;
+        } /* if */
+      } /* for */
+    } /* if */
     *destChar = '\0';
     sprintf(testProgram,
             "#include <stdio.h>\n#include <windows.h>\n"
@@ -8027,6 +8040,46 @@ static void listDynamicLibs (const char *scopeName, const char *baseDir,
 
 
 
+static void listDynamicLibsInBaseDir (const char *scopeName, const char *baseDir,
+    const char **dllNameList, size_t dllNameListLength, FILE *versionFile)
+
+  {
+    unsigned int nameIndex;
+    int dllPresent;
+    int dllPointerSize;
+    char dllPath[PATH_SIZE + 1 + NAME_SIZE];
+
+  /* listDynamicLibsInBaseDir */
+    for (nameIndex = 0;
+         nameIndex < dllNameListLength;
+         nameIndex++) {
+      sprintf(dllPath, "%s/%s", baseDir, dllNameList[nameIndex]);
+      if (dllPath[0] == '/' && isalpha(dllPath[1]) && dllPath[2] == '/') {
+        dllPath[0] = dllPath[1];
+        dllPath[1] = ':';
+      } /* if */
+      if (fileIsRegular(dllPath)) {
+        dllPresent = canLoadDynamicLibrary(dllPath);
+        dllPointerSize = pointerSizeOfDynamicLibrary(dllPath);
+        fprintf(logFile, "\r%s: DLL / Shared library: %s (%s)",
+                scopeName, dllPath,
+                dllPresent ? "present" : "cannot load");
+        if (dllPointerSize != 0) {
+          fprintf(logFile, " (%d-bit)", dllPointerSize);
+        } /* if */
+      } else {
+        fprintf(logFile, "\r%s: DLL / Shared library: %s (missing)",
+                scopeName, dllPath);
+      } /* if */
+      fprintf(logFile, "\n");
+      fprintf(versionFile, " \"");
+      escapeString(versionFile, dllPath);
+      fprintf(versionFile, "\",");
+    } /* for */
+  } /* listDynamicLibsInBaseDir */
+
+
+
 static void listDynamicLibsInSameDir (const char *scopeName, const char *baseDllPath,
     const char **dllNameList, size_t dllNameListLength, FILE *versionFile)
 
@@ -8037,7 +8090,7 @@ static void listDynamicLibsInSameDir (const char *scopeName, const char *baseDll
     unsigned int nameIndex;
     int dllPointerSize;
     char dirPath[PATH_SIZE];
-    char filePath[PATH_SIZE + 1 + NAME_SIZE];
+    char dllPath[PATH_SIZE + 1 + NAME_SIZE];
 
   /* listDynamicLibsInSameDir */
     slashPos = strrchr(baseDllPath, '/');
@@ -8061,20 +8114,20 @@ static void listDynamicLibsInSameDir (const char *scopeName, const char *baseDll
       for (nameIndex = 0;
            nameIndex < dllNameListLength;
            nameIndex++) {
-        sprintf(filePath, "%s/%s", dirPath, dllNameList[nameIndex]);
-        /* printf("filePath: %s\n", filePath); */
-        if (fileIsRegular(filePath)) {
-          /* printf("fileIsRegular(%s)\n", filePath); */
+        sprintf(dllPath, "%s/%s", dirPath, dllNameList[nameIndex]);
+        /* printf("dllPath: %s\n", dllPath); */
+        if (fileIsRegular(dllPath)) {
+          /* printf("fileIsRegular(%s)\n", dllPath); */
           fprintf(logFile, "\r%s: DLL / Shared library: %s (%s)",
-                  scopeName, filePath,
-                  canLoadDynamicLibrary(filePath) ? "present" : "cannot load");
-          dllPointerSize = pointerSizeOfDynamicLibrary(filePath);
+                  scopeName, dllPath,
+                  canLoadDynamicLibrary(dllPath) ? "present" : "cannot load");
+          dllPointerSize = pointerSizeOfDynamicLibrary(dllPath);
           if (dllPointerSize != 0) {
             fprintf(logFile, " (%d-bit)", dllPointerSize);
           } /* if */
           fprintf(logFile, "\n");
           fprintf(versionFile, " \"");
-          escapeString(versionFile, filePath);
+          escapeString(versionFile, dllPath);
           fprintf(versionFile, "\",");
         } /* if */
       } /* for */
@@ -9052,26 +9105,9 @@ static void determineSqliteDefines (FILE *versionFile,
                         dllNameList, sizeof(dllNameList) / sizeof(char *), versionFile);
       } /* if */
       if (s7LibDir[0] != '\0') {
-        for (nameIndex = 0; nameIndex < sizeof(dllNameList) / sizeof(char *); nameIndex++) {
-          sprintf(dllPath, "%s/%s", s7LibDir, dllNameList[nameIndex]);
-          if (dllPath[0] == '/' && isalpha(dllPath[1]) && dllPath[2] == '/') {
-            dllPath[0] = dllPath[1];
-            dllPath[1] = ':';
-          } /* if */
-          fprintf(logFile, "\rSQLite: DLL / Shared library: %s", dllPath);
-          if (fileIsRegular(dllPath)) {
-            fprintf(logFile, " (%s)",
-                    canLoadDynamicLibrary(dllPath) ? "present" : "cannot load");
-            dllPointerSize = pointerSizeOfDynamicLibrary(dllPath);
-            if (dllPointerSize != 0) {
-              fprintf(logFile, " (%d-bit)", dllPointerSize);
-            } /* if */
-          } else {
-            fprintf(logFile, " (missing)");
-          } /* if */
-          fprintf(logFile, "\n");
-          fprintf(versionFile, " \"%s\",", dllPath);
-        } /* for */
+        listDynamicLibsInBaseDir("SQLite", s7LibDir,
+                                 dllNameList, sizeof(dllNameList) / sizeof(char *),
+                                 versionFile);
       } /* if */
       for (nameIndex = 0; nameIndex < sizeof(dllNameList) / sizeof(char *); nameIndex++) {
         fprintf(logFile, "\rSQLite: DLL / Shared library: %s (%s)\n",
@@ -9646,7 +9682,7 @@ static void determineOdbcDefines (FILE *versionFile,
     sprintf(testProgram, "#include \"tst_vers.h\"\n#include<stdio.h>\n"
                          "%s#include \"%s\"\n%s"
                          "int main(int argc,char *argv[]){\n"
-                         "SQLHENV sql_env;\n"
+                         "SQLHENV sql_env = NULL;\n"
                          "SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &sql_env);\n"
                          "SQLFreeHandle(SQL_HANDLE_ENV, sql_env);\n"
                          "printf(\"1\\n\");\n"
@@ -9828,7 +9864,7 @@ static void determineFireDefines (FILE *versionFile,
 #ifdef FIRE_DLL
     const char *dllNameList[] = { FIRE_DLL };
 #elif LIBRARY_TYPE == UNIX_LIBRARIES
-    const char *dllNameList[] = {"libfbclient.so"};
+    const char *dllNameList[] = {"libfbclient.so", "libfbclient.so.2"};
 #elif LIBRARY_TYPE == MACOS_LIBRARIES
     const char *dllNameList[] = {"libfbclient.dylib"};
 #elif LIBRARY_TYPE == WINDOWS_LIBRARIES
@@ -9979,6 +10015,11 @@ static void determineFireDefines (FILE *versionFile,
                         dllDirList, sizeof(dllDirList) / sizeof(char *),
                         dllNameList, sizeof(dllNameList) / sizeof(char *), versionFile);
       } /* if */
+      if (s7LibDir[0] != '\0') {
+        listDynamicLibsInBaseDir("Firebird", s7LibDir,
+                                 dllNameList, sizeof(dllNameList) / sizeof(char *),
+                                 versionFile);
+      } /* if */
       for (nameIndex = 0; nameIndex < sizeof(dllNameList) / sizeof(char *); nameIndex++) {
         fprintf(logFile, "\rFirebird: DLL / Shared library: %s (%s)\n",
                 dllNameList[nameIndex],
@@ -10105,7 +10146,7 @@ static void determineDb2Defines (FILE *versionFile,
       sprintf(testProgram, "#include \"tst_vers.h\"\n#include<stdio.h>\n"
                            "#include \"%s\"\n"
                            "int main(int argc,char *argv[]){\n"
-                           "SQLHENV sql_env;\n"
+                           "SQLHENV sql_env = NULL;\n"
                            "SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &sql_env);\n"
                            "SQLFreeHandle(SQL_HANDLE_ENV, sql_env);\n"
                            "printf(\"1\\n\");\n"
@@ -10142,6 +10183,7 @@ static void determineDb2Defines (FILE *versionFile,
     } /* if */
 #endif
     if (searchForLib) {
+      appendToMakeMacros("DB2_CC_OPTION", "-c");
       /* Handle dynamic libraries: */
       appendOption(system_database_libs, LINKER_OPT_DYN_LINK_LIBS);
       fprintf(versionFile, "#define DB2_DLL");
@@ -10152,6 +10194,8 @@ static void determineDb2Defines (FILE *versionFile,
         fprintf(versionFile, " \"%s\",", dllNameList[nameIndex]);
       } /* for */
       fprintf(versionFile, "\n");
+    } else {
+      appendToMakeMacros("DB2_CC_OPTION", linkerOptPartialLinking);
     } /* if */
   } /* determineDb2Defines */
 
@@ -10174,13 +10218,13 @@ static void determineInformixDefines (FILE *versionFile,
 #ifdef INFORMIX_DLL
     const char *dllNameList[] = { INFORMIX_DLL };
 #elif LIBRARY_TYPE == UNIX_LIBRARIES
-    const char *dllNameList[] = {"iclit09b.so"};
+    const char *dllNameList[] = {"iclit15a.so", "iclit09b.so"};
     const char *libIfglsDllList[] = {"libifgls.so"};
 #elif LIBRARY_TYPE == MACOS_LIBRARIES
-    const char *dllNameList[] = {"iclit09b.dylib"};
+    const char *dllNameList[] = {"iclit15a.dylib", "iclit09b.dylib"};
     const char *libIfglsDllList[] = {"libifgls.dylib"};
 #elif LIBRARY_TYPE == WINDOWS_LIBRARIES
-    const char *dllNameList[] = {"iclit09b.dll"};
+    const char *dllNameList[] = {"iclit15a.dll", "iclit09b.dll"};
     const char *libIfglsDllList[] = {""};
 #endif
     const char *inclDirList[] = {"/incl/cli"};
@@ -10326,7 +10370,7 @@ static void determineInformixDefines (FILE *versionFile,
       sprintf(testProgram, "#include \"tst_vers.h\"\n#include<stdio.h>\n"
                            "%s#include \"%s\"\n%s"
                            "int main(int argc,char *argv[]){\n"
-                           "SQLHENV sql_env;\n"
+                           "SQLHENV sql_env = NULL;\n"
                            "SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &sql_env);\n"
                            "SQLFreeHandle(SQL_HANDLE_ENV, sql_env);\n"
                            "printf(\"1\\n\");\n"
@@ -10367,6 +10411,7 @@ static void determineInformixDefines (FILE *versionFile,
     } /* if */
 #endif
     if (searchForLib) {
+      appendToMakeMacros("INFORMIX_CC_OPTION", "-c");
       /* Handle dynamic libraries: */
       appendOption(system_database_libs, LINKER_OPT_DYN_LINK_LIBS);
       fprintf(versionFile, "#define INFORMIX_DLL");
@@ -10385,6 +10430,8 @@ static void determineInformixDefines (FILE *versionFile,
                                 rpath, versionFile);
         fprintf(versionFile, "\n");
       } /* if */
+    } else {
+      appendToMakeMacros("INFORMIX_CC_OPTION", linkerOptPartialLinking);
     } /* if */
   } /* determineInformixDefines */
 
@@ -10503,7 +10550,7 @@ static void determineSqlServerDefines (FILE *versionFile,
       sprintf(testProgram, "#include \"tst_vers.h\"\n#include<stdio.h>\n"
                            "%s#include \"%s\"\n%s"
                            "int main(int argc,char *argv[]){\n"
-                           "SQLHENV sql_env;\n"
+                           "SQLHENV sql_env = NULL;\n"
                            "SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &sql_env);\n"
                            "SQLFreeHandle(SQL_HANDLE_ENV, sql_env);\n"
                            "printf(\"1\\n\");\n"
@@ -10530,6 +10577,7 @@ static void determineSqlServerDefines (FILE *versionFile,
     } /* if */
 #endif
     if (searchForLib) {
+      appendToMakeMacros("SQL_SERVER_CC_OPTION", "-c");
       /* Handle dynamic libraries: */
       appendOption(system_database_libs, LINKER_OPT_DYN_LINK_LIBS);
       fprintf(versionFile, "#define SQL_SERVER_DLL");
@@ -10540,6 +10588,8 @@ static void determineSqlServerDefines (FILE *versionFile,
         fprintf(versionFile, " \"%s\",", dllNameList[nameIndex]);
       } /* for */
       fprintf(versionFile, "\n");
+    } else {
+      appendToMakeMacros("SQL_SERVER_CC_OPTION", linkerOptPartialLinking);
     } /* if */
   } /* determineSqlServerDefines */
 
@@ -10925,6 +10975,7 @@ static int getCodePage (void)
                          "return 0; }\n")) {
       codePage = doTest();
     } /* if */
+    return codePage;
   } /* getCodePage */
 #endif
 

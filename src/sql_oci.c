@@ -651,7 +651,8 @@ static void freePreparedStmt (sqlStmtType sqlStatement)
       FREE_TABLE(preparedStmt->result_array, resultDataRecordOci, preparedStmt->result_array_size);
     } /* if */
     OCIHandleFree(preparedStmt->ppStmt, OCI_HTYPE_STMT);
-    if (preparedStmt->db->usage_count != 0) {
+    if (preparedStmt->db != NULL &&
+        preparedStmt->db->usage_count != 0) {
       preparedStmt->db->usage_count--;
       if (preparedStmt->db->usage_count == 0) {
         logMessage(printf("FREE " FMT_U_MEM "\n", (memSizeType) preparedStmt->db););
@@ -2832,9 +2833,12 @@ static void sqlBindDuration (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindDuration: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year < INT32TYPE_MIN || year > INT32TYPE_MAX || month < -12 || month > 12 ||
-                        day < -31 || day > 31 || hour <= -24 || hour >= 24 ||
-                        minute <= -60 || minute >= 60 || second <= -60 || second >= 60 ||
+    } else if (unlikely(year < INT32TYPE_MIN || year > INT32TYPE_MAX ||
+                        month < -12 || month > 12 ||
+                        day < -31 || day > 31 ||
+                        hour <= -24 || hour >= 24 ||
+                        minute <= -60 || minute >= 60 ||
+                        second <= -60 || second >= 60 ||
                         micro_second <= -1000000 || micro_second >= 1000000)) {
       logError(printf("sqlBindDuration: Duration not in allowed range.\n"););
       raise_error(RANGE_ERROR);
@@ -2856,10 +2860,10 @@ static void sqlBindDuration (sqlStmtType sqlStatement, intType pos,
         } /* if */
       } /* if */
       if (likely(err_info == OKAY_NO_ERROR)) {
-        if (day == 0 && hour == 0 && minute == 0 && second == 0 && micro_second == 0) {
-          buffer_type = SQLT_INTERVAL_YM;
-        } else if (year == 0 && month == 0) {
+        if (year == 0 && month == 0) {
           buffer_type = SQLT_INTERVAL_DS;
+        } else if (day == 0 && hour == 0 && minute == 0 && second == 0 && micro_second == 0) {
+          buffer_type = SQLT_INTERVAL_YM;
         } else {
           logError(printf("sqlBindDuration: Neither SQLT_INTERVAL_YM nor SQLT_INTERVAL_DS.\n"););
           err_info = RANGE_ERROR;
@@ -3234,9 +3238,12 @@ static void sqlBindTime (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindTime: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year <= INT16TYPE_MIN || year > INT16TYPE_MAX || month < 1 || month > 12 ||
-                        day < 1 || day > 31 || hour < 0 || hour >= 24 ||
-                        minute < 0 || minute >= 60 || second < 0 || second >= 60 ||
+    } else if (unlikely(year <= INT16TYPE_MIN || year > INT16TYPE_MAX ||
+                        month < 1 || month > 12 ||
+                        day < 1 || day > 31 ||
+                        hour < 0 || hour >= 24 ||
+                        minute < 0 || minute >= 60 ||
+                        second < 0 || second >= 60 ||
                         micro_second < 0 || micro_second >= 1000000)) {
       logError(printf("sqlBindTime: Time not in allowed range.\n"););
       raise_error(RANGE_ERROR);

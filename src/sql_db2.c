@@ -32,6 +32,8 @@
 #define LOG_FUNCTIONS 0
 #define VERBOSE_EXCEPTIONS 0
 
+#define LOG_CLI_FUNCTIONS 0
+
 #include "version.h"
 
 #include "stdlib.h"
@@ -108,11 +110,11 @@ static boolType createConnectionString (connectDataType connectData)
     boolType okay = FALSE;
 
   /* createConnectionString */
-    logFunction(printf("createConnectionString([hostname=\"");
-                printWstri(connectData->hostname);
-                printf("\", port=" FMT_D ", database=\"", connectData->port);
-                printWstri(connectData->database);
-                printf("\"])\n"););
+    logFunction(printf("createConnectionString([hostname=\"%s\", port=" FMT_D,
+                       sqlwstriAsUnquotedCStri(connectData->hostname),
+                       connectData->port);
+		printf(", database=\"%s\"])\n",
+                       sqlwstriAsUnquotedCStri(connectData->database)););
 
     if (connectData->hostnameLength == 0) {
       hostname = localhost;
@@ -179,10 +181,9 @@ static boolType createConnectionString (connectDataType connectData)
           pos += connectData->uidLength;
         } /* if */
 
-        logFunction(printf("createConnectionString --> TRUE (connectionString=\"");
-                    connectionString[pos] = '\0';
-                    printWstri(connectionString);
-                    printf("%s\")\n",
+        logFunction(connectionString[pos] = '\0';
+                    printf("createConnectionString --> TRUE (connectionString=\"%s%s\")\n",
+                           sqlwstriAsUnquotedCStri(connectionString),
                            connectData->pwdLength != 0 ? ";PWD=*" : ""););
 
         if (connectData->pwdLength != 0) {
@@ -197,9 +198,8 @@ static boolType createConnectionString (connectDataType connectData)
         okay = TRUE;
       } /* if */
     } /* if */
-    logFunction(if (!okay) {
-                  printf("createConnectionString --> FALSE\n");
-                });
+    logFunctionIfTrue(!okay,
+                      printf("createConnectionString --> FALSE\n"););
     return okay;
   } /* createConnectionString */
 
@@ -208,8 +208,8 @@ static boolType createConnectionString (connectDataType connectData)
 static databaseType doOpenDb2 (connectDataType connectData, errInfoType *err_info)
 
   {
-    SQLHENV sql_environment;
-    SQLHDBC sql_connection;
+    SQLHENV sql_environment = NULL;
+    SQLHDBC sql_connection = NULL;
     SQLRETURN returnCode;
     SQLSMALLINT outConnectionStringLength;
     databaseType database;

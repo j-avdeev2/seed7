@@ -852,8 +852,12 @@ const proc: testWithAutoCommit (in database: testDb, inout testState: state,
                                               " (" & state.fieldName & " CHAR(32))");
     execute(secondStmt);
 
-    state.statement := prepare(testDb, "SELECT * FROM " & state.tableName);
-    if not succeeds(execute(state.statement)) then
+    if not succeeds(state.statement := prepare(testDb, "SELECT * FROM " & state.tableName)) then
+      state.okay := FALSE;
+      if state.details then
+        writeln(" *** Prepare: Table created by other connection does not exist. (1)");
+      end if;
+    elsif not succeeds(execute(state.statement)) then
       state.okay := FALSE;
       if state.details then
         writeln(" *** Execute: Table created by other connection does not exist. (1)");
@@ -889,8 +893,12 @@ const proc: testWithAutoCommit (in database: testDb, inout testState: state,
       end if;
     end if;
 
-    state.statement := prepare(testDb, "SELECT * FROM " & state.tableName);
-    if not succeeds(execute(state.statement)) then
+    if not succeeds(state.statement := prepare(testDb, "SELECT * FROM " & state.tableName)) then
+      state.okay := FALSE;
+      if state.details then
+        writeln(" *** Prepare: Table created by other connection does not exist. (2)");
+      end if;
+    elsif not succeeds(execute(state.statement)) then
       state.okay := FALSE;
       if state.details then
         writeln(" *** Execute: Table created by other connection does not exist. (3)");
@@ -2170,6 +2178,8 @@ const proc: testFloatField (in database: testDb, in dbCategory: databaseKind) is
 
       insert(testDb, state, "-9223372036854775809.0",   expect &:= -9223372036854775809.0);
       insert(testDb, state, "-9223372036854775808.0",   expect &:= -9223372036854775808.0);
+      insert(testDb, state,  "-922337286148849664.0",   expect &:=  -922337286148849664.0);
+      insert(testDb, state,  "-922337217429372928.0",   expect &:=  -922337217429372928.0);
       insert(testDb, state,    "0.0",                   expect &:=    0.0);
       insert(testDb, state,    "5.9604644775390625e-8", expect &:=    5.9604644775390625e-8);
       insert(testDb, state,    "2.384185791015625e-7",  expect &:=    2.384185791015625e-7);
@@ -2180,17 +2190,29 @@ const proc: testFloatField (in database: testDb, in dbCategory: databaseKind) is
       insert(testDb, state,    "3.5",                   expect &:=    3.5);
       insert(testDb, state,    "4.125",                 expect &:=    4.125);
       insert(testDb, state, "4882.8125",                expect &:= 4882.8125);
+      insert(testDb, state,   "922337217429372928.0",   expect &:=   922337217429372928.0);
+      insert(testDb, state,   "922337286148849664.0",   expect &:=   922337286148849664.0);
       insert(testDb, state,  "9223372036854775807.0",   expect &:=  9223372036854775807.0);
       insert(testDb, state,  "9223372036854775808.0",   expect &:=  9223372036854775808.0);
 
       insert(state, 1,                          expect &:=                    1.0);
       insert(state, pred(-9223372036854775807), expect &:= -9223372036854775808.0);
+      insert(state, -922337286148849664,        expect &:=  -922337286148849664.0);
+      insert(state, -922337217429372928,        expect &:=  -922337217429372928.0);
+      insert(state,  922337217429372928,        expect &:=   922337217429372928.0);
+      insert(state,  922337286148849664,        expect &:=   922337286148849664.0);
       insert(state, 9223372036854775807,        expect &:=  9223372036854775807.0);
 
       state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
                                  " (" & state.fieldName & ") VALUES (?)");
       insert(state,                    2_,      expect &:=                    2.0);
       insert(state, -9223372036854775809_,      expect &:= -9223372036854775809.0);
+      insert(state, -9223372036854775808_,      expect &:= -9223372036854775808.0);
+      insert(state,  -922337286148849664_,      expect &:=  -922337286148849664.0);
+      insert(state,  -922337217429372928_,      expect &:=  -922337217429372928.0);
+      insert(state,   922337217429372928_,      expect &:=   922337217429372928.0);
+      insert(state,   922337286148849664_,      expect &:=   922337286148849664.0);
+      insert(state,  9223372036854775807_,      expect &:=  9223372036854775807.0);
       insert(state,  9223372036854775808_,      expect &:=  9223372036854775808.0);
 
       state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
@@ -2207,6 +2229,8 @@ const proc: testFloatField (in database: testDb, in dbCategory: databaseKind) is
                                  " (" & state.fieldName & ") VALUES (?)");
       insert(state, -9223372036854775809.0,     expect &:= -9223372036854775809.0);
       insert(state, -9223372036854775808.0,     expect &:= -9223372036854775808.0);
+      insert(state,  -922337286148849664.0,     expect &:=  -922337286148849664.0);
+      insert(state,  -922337217429372928.0,     expect &:=  -922337217429372928.0);
       insert(state,    0.0,                     expect &:=    0.0);
       insert(state,    5.9604644775390625e-8,   expect &:=    5.9604644775390625e-8);
       insert(state,    2.384185791015625e-7,    expect &:=    2.384185791015625e-7);
@@ -2217,6 +2241,8 @@ const proc: testFloatField (in database: testDb, in dbCategory: databaseKind) is
       insert(state,    3.5,                     expect &:=    3.5);
       insert(state,    4.125,                   expect &:=    4.125);
       insert(state, 4882.8125,                  expect &:= 4882.8125);
+      insert(state,   922337217429372928.0,     expect &:=   922337217429372928.0);
+      insert(state,   922337286148849664.0,     expect &:=   922337286148849664.0);
       insert(state,  9223372036854775807.0,     expect &:=  9223372036854775807.0);
       insert(state,  9223372036854775808.0,     expect &:=  9223372036854775808.0);
       insInf(state, -Infinity,                  expect &:= -Infinity);
@@ -2306,6 +2332,8 @@ const proc: testDoubleField (in database: testDb, in dbCategory: databaseKind) i
 
       insert(testDb, state, "-9223372036854775809.0",   expect &:= -9223372036854775809.0);
       insert(testDb, state, "-9223372036854775808.0",   expect &:= -9223372036854775808.0);
+      insert(testDb, state,  "-922337203685477581.0",   expect &:=  -922337203685477581.0);
+      insert(testDb, state,  "-922337203685477580.0",   expect &:=  -922337203685477580.0);
       insert(testDb, state,    "0.0",                   expect &:=    0.0);
       insert(testDb, state,    "5.9604644775390625e-8", expect &:=    5.9604644775390625e-8);
       insert(testDb, state,    "2.384185791015625e-7",  expect &:=    2.384185791015625e-7);
@@ -2316,18 +2344,30 @@ const proc: testDoubleField (in database: testDb, in dbCategory: databaseKind) i
       insert(testDb, state,    "3.5",                   expect &:=    3.5);
       insert(testDb, state,    "4.125",                 expect &:=    4.125);
       insert(testDb, state, "4882.8125",                expect &:= 4882.8125);
+      insert(testDb, state,   "922337203685477580.0",   expect &:=   922337203685477580.0);
+      insert(testDb, state,   "922337203685477581.0",   expect &:=   922337203685477581.0);
       insert(testDb, state,  "9223372036854775807.0",   expect &:=  9223372036854775807.0);
       insert(testDb, state,  "9223372036854775808.0",   expect &:=  9223372036854775808.0);
 
       insert(state, 1,                          expect &:=                    1.0);
       insert(state, pred(-9223372036854775807), expect &:= -9223372036854775808.0);
+      insert(state, -922337203685477581,        expect &:=  -922337203685477581.0);
+      insert(state, -922337203685477580,        expect &:=  -922337203685477580.0);
+      insert(state,  922337203685477580,        expect &:=   922337203685477580.0);
+      insert(state,  922337203685477581,        expect &:=   922337203685477581.0);
       insert(state, 9223372036854775807,        expect &:=  9223372036854775807.0);
 
       state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
                                  " (" & state.fieldName & ") VALUES (?)");
       insert(state, 2_,                         expect &:=                    2.0);
       insert(state, -9223372036854775809_,      expect &:= -9223372036854775809.0);
-      insert(state, 9223372036854775808_,       expect &:=  9223372036854775808.0);
+      insert(state, -9223372036854775808_,      expect &:= -9223372036854775808.0);
+      insert(state,  -922337203685477581_,      expect &:=  -922337203685477581.0);
+      insert(state,  -922337203685477580_,      expect &:=  -922337203685477580.0);
+      insert(state,   922337203685477580_,      expect &:=   922337203685477580.0);
+      insert(state,   922337203685477581_,      expect &:=   922337203685477581.0);
+      insert(state,  9223372036854775807_,      expect &:=  9223372036854775807.0);
+      insert(state,  9223372036854775808_,      expect &:=  9223372036854775808.0);
 
       state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
                                  " (" & state.fieldName & ") VALUES (?)");
@@ -2343,6 +2383,8 @@ const proc: testDoubleField (in database: testDb, in dbCategory: databaseKind) i
                                  " (" & state.fieldName & ") VALUES (?)");
       insert(state, -9223372036854775809.0,     expect &:= -9223372036854775809.0);
       insert(state, -9223372036854775808.0,     expect &:= -9223372036854775808.0);
+      insert(state,  -922337203685477581.0,     expect &:=  -922337203685477581.0);
+      insert(state,  -922337203685477580.0,     expect &:=  -922337203685477580.0);
       insert(state,    0.0,                     expect &:=    0.0);
       insert(state,    5.9604644775390625e-8,   expect &:=    5.9604644775390625e-8);
       insert(state,    2.384185791015625e-7,    expect &:=    2.384185791015625e-7);
@@ -2353,6 +2395,8 @@ const proc: testDoubleField (in database: testDb, in dbCategory: databaseKind) i
       insert(state,    3.5,                     expect &:=    3.5);
       insert(state,    4.125,                   expect &:=    4.125);
       insert(state, 4882.8125,                  expect &:= 4882.8125);
+      insert(state,   922337203685477580.0,     expect &:=   922337203685477580.0);
+      insert(state,   922337203685477581.0,     expect &:=   922337203685477581.0);
       insert(state,  9223372036854775807.0,     expect &:=  9223372036854775807.0);
       insert(state,  9223372036854775808.0,     expect &:=  9223372036854775808.0);
       insInf(state, -Infinity,                  expect &:= -Infinity);
@@ -3550,6 +3594,141 @@ const proc: testChar1AsciiField (in database: testDb, in dbCategory: databaseKin
   end func;
 
 
+const proc: testChar1Latin1C1ControlField (in database: testDb, in dbCategory: databaseKind) is func
+  local
+    var testState: state is testState("char1Latin1Test", "testChar1Latin1C1ControlField", FALSE);
+    var array string: expect is 0 times "";
+    var string: stringColumn is "";
+    var integer: row is 1;
+  begin
+    if state.details then
+      writeln("testChar1Latin1C1ControlField: " <& databaseKind);
+    end if;
+    block
+      state.statement := prepare(testDb, "CREATE TABLE " & state.tableName &
+                                 " (" & state.fieldName & " CHAR)");
+      execute(state.statement);
+      insert(testDb, state, "NULL", expect &:= "");
+      state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
+                                 " (" & state.fieldName & ") VALUES (?)");
+      insert(state, NULL,  expect &:= "");
+
+      insert(testDb, state, "'\128;'", expect &:= "\128;");
+      insert(testDb, state, "'\129;'", expect &:= "\129;");
+      insert(testDb, state, "'\130;'", expect &:= "\130;");
+      insert(testDb, state, "'\131;'", expect &:= "\131;");
+      insert(testDb, state, "'\132;'", expect &:= "\132;");
+      insert(testDb, state, "'\133;'", expect &:= "\133;");
+      insert(testDb, state, "'\134;'", expect &:= "\134;");
+      insert(testDb, state, "'\135;'", expect &:= "\135;");
+      insert(testDb, state, "'\136;'", expect &:= "\136;");
+      insert(testDb, state, "'\137;'", expect &:= "\137;");
+      insert(testDb, state, "'\138;'", expect &:= "\138;");
+      insert(testDb, state, "'\139;'", expect &:= "\139;");
+      insert(testDb, state, "'\140;'", expect &:= "\140;");
+      insert(testDb, state, "'\141;'", expect &:= "\141;");
+      insert(testDb, state, "'\142;'", expect &:= "\142;");
+      insert(testDb, state, "'\143;'", expect &:= "\143;");
+      insert(testDb, state, "'\144;'", expect &:= "\144;");
+      insert(testDb, state, "'\145;'", expect &:= "\145;");
+      insert(testDb, state, "'\146;'", expect &:= "\146;");
+      insert(testDb, state, "'\147;'", expect &:= "\147;");
+      insert(testDb, state, "'\148;'", expect &:= "\148;");
+      insert(testDb, state, "'\149;'", expect &:= "\149;");
+      insert(testDb, state, "'\150;'", expect &:= "\150;");
+      insert(testDb, state, "'\151;'", expect &:= "\151;");
+      insert(testDb, state, "'\152;'", expect &:= "\152;");
+      insert(testDb, state, "'\153;'", expect &:= "\153;");
+      insert(testDb, state, "'\154;'", expect &:= "\154;");
+      insert(testDb, state, "'\155;'", expect &:= "\155;");
+      insert(testDb, state, "'\156;'", expect &:= "\156;");
+      insert(testDb, state, "'\157;'", expect &:= "\157;");
+      insert(testDb, state, "'\158;'", expect &:= "\158;");
+      insert(testDb, state, "'\159;'", expect &:= "\159;");
+
+      insert(state, "\128;", expect &:= "\128;");
+      insert(state, "\129;", expect &:= "\129;");
+      insert(state, "\130;", expect &:= "\130;");
+      insert(state, "\131;", expect &:= "\131;");
+      insert(state, "\132;", expect &:= "\132;");
+      insert(state, "\133;", expect &:= "\133;");
+      insert(state, "\134;", expect &:= "\134;");
+      insert(state, "\135;", expect &:= "\135;");
+      insert(state, "\136;", expect &:= "\136;");
+      insert(state, "\137;", expect &:= "\137;");
+      insert(state, "\138;", expect &:= "\138;");
+      insert(state, "\139;", expect &:= "\139;");
+      insert(state, "\140;", expect &:= "\140;");
+      insert(state, "\141;", expect &:= "\141;");
+      insert(state, "\142;", expect &:= "\142;");
+      insert(state, "\143;", expect &:= "\143;");
+      insert(state, "\144;", expect &:= "\144;");
+      insert(state, "\145;", expect &:= "\145;");
+      insert(state, "\146;", expect &:= "\146;");
+      insert(state, "\147;", expect &:= "\147;");
+      insert(state, "\148;", expect &:= "\148;");
+      insert(state, "\149;", expect &:= "\149;");
+      insert(state, "\150;", expect &:= "\150;");
+      insert(state, "\151;", expect &:= "\151;");
+      insert(state, "\152;", expect &:= "\152;");
+      insert(state, "\153;", expect &:= "\153;");
+      insert(state, "\154;", expect &:= "\154;");
+      insert(state, "\155;", expect &:= "\155;");
+      insert(state, "\156;", expect &:= "\156;");
+      insert(state, "\157;", expect &:= "\157;");
+      insert(state, "\158;", expect &:= "\158;");
+      insert(state, "\159;", expect &:= "\159;");
+
+      state.statement := prepare(testDb, "SELECT * FROM " & state.tableName);
+      execute(state.statement);
+      while fetch(state.statement) do
+        stringColumn := column(state.statement, 1, string);
+        if stringColumn <> expect[row] then
+          state.okay := FALSE;
+          if state.details then
+            writeln(" *** testChar1Latin1C1ControlField: Row: " <& row <&
+                    " Expected " <& literal(expect[row]) <&
+                    " found " <& literal(stringColumn));
+          end if;
+        end if;
+        if row <= 2 and not isNull(state.statement, 1) then
+          state.okay := FALSE;
+          if state.details then
+            writeln(" *** testChar1Latin1C1ControlField: Row: " <& row <&
+                    " Expected NULL found " <& stringColumn);
+          end if;
+        end if;
+        if expect[row] <> "" and isNull(state.statement, 1) then
+          state.okay := FALSE;
+          if state.details then
+            writeln(" *** testChar1Latin1C1ControlField: Row: " <& row <&
+                    " Expected " <& expect[row] <& " found NULL");
+          end if;
+        end if;
+        incr(row);
+      end while;
+    exception
+      catch RANGE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** RANGE_ERROR was raised");
+      catch FILE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** FILE_ERROR was raised");
+      catch DATABASE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** DATABASE_ERROR was raised: " <& errMessage(DATABASE_ERROR));
+    end block;
+    state.statement := prepare(testDb, "DROP TABLE " & state.tableName);
+    execute(state.statement);
+
+    if state.okay then
+      writeln("Inserting and fetching char(1) fields with LATIN-1 C1 control characters works okay.");
+    else
+      writeln(" *** Inserting and fetching char(1) fields with LATIN-1 C1 control characters does not work okay.");
+    end if;
+  end func;
+
+
 const proc: testChar1Latin1Field (in database: testDb, in dbCategory: databaseKind) is func
   local
     var testState: state is testState("char1Latin1Test", "char1Latin1Field", FALSE);
@@ -3599,38 +3778,6 @@ const proc: testChar1Latin1Field (in database: testDb, in dbCategory: databaseKi
       insert(testDb, state, "'a'",     expect &:= "a");
       insert(testDb, state, "'~'",     expect &:= "~");
       insert(testDb, state, "'\127;'", expect &:= "\127;");
-      insert(testDb, state, "'\128;'", expect &:= "\128;");
-      insert(testDb, state, "'\129;'", expect &:= "\129;");
-      insert(testDb, state, "'\130;'", expect &:= "\130;");
-      insert(testDb, state, "'\131;'", expect &:= "\131;");
-      insert(testDb, state, "'\132;'", expect &:= "\132;");
-      insert(testDb, state, "'\133;'", expect &:= "\133;");
-      insert(testDb, state, "'\134;'", expect &:= "\134;");
-      insert(testDb, state, "'\135;'", expect &:= "\135;");
-      insert(testDb, state, "'\136;'", expect &:= "\136;");
-      insert(testDb, state, "'\137;'", expect &:= "\137;");
-      insert(testDb, state, "'\138;'", expect &:= "\138;");
-      insert(testDb, state, "'\139;'", expect &:= "\139;");
-      insert(testDb, state, "'\140;'", expect &:= "\140;");
-      insert(testDb, state, "'\141;'", expect &:= "\141;");
-      insert(testDb, state, "'\142;'", expect &:= "\142;");
-      insert(testDb, state, "'\143;'", expect &:= "\143;");
-      insert(testDb, state, "'\144;'", expect &:= "\144;");
-      insert(testDb, state, "'\145;'", expect &:= "\145;");
-      insert(testDb, state, "'\146;'", expect &:= "\146;");
-      insert(testDb, state, "'\147;'", expect &:= "\147;");
-      insert(testDb, state, "'\148;'", expect &:= "\148;");
-      insert(testDb, state, "'\149;'", expect &:= "\149;");
-      insert(testDb, state, "'\150;'", expect &:= "\150;");
-      insert(testDb, state, "'\151;'", expect &:= "\151;");
-      insert(testDb, state, "'\152;'", expect &:= "\152;");
-      insert(testDb, state, "'\153;'", expect &:= "\153;");
-      insert(testDb, state, "'\154;'", expect &:= "\154;");
-      insert(testDb, state, "'\155;'", expect &:= "\155;");
-      insert(testDb, state, "'\156;'", expect &:= "\156;");
-      insert(testDb, state, "'\157;'", expect &:= "\157;");
-      insert(testDb, state, "'\158;'", expect &:= "\158;");
-      insert(testDb, state, "'\159;'", expect &:= "\159;");
       insert(testDb, state, "'\160;'", expect &:= "\160;");
       insert(testDb, state, "'¡'",     expect &:= "¡");
       insert(testDb, state, "'¤'",     expect &:= "¤");
@@ -3682,38 +3829,6 @@ const proc: testChar1Latin1Field (in database: testDb, in dbCategory: databaseKi
       insert(state, "a",     expect &:= "a");
       insert(state, "~",     expect &:= "~");
       insert(state, "\127;", expect &:= "\127;");
-      insert(state, "\128;", expect &:= "\128;");
-      insert(state, "\129;", expect &:= "\129;");
-      insert(state, "\130;", expect &:= "\130;");
-      insert(state, "\131;", expect &:= "\131;");
-      insert(state, "\132;", expect &:= "\132;");
-      insert(state, "\133;", expect &:= "\133;");
-      insert(state, "\134;", expect &:= "\134;");
-      insert(state, "\135;", expect &:= "\135;");
-      insert(state, "\136;", expect &:= "\136;");
-      insert(state, "\137;", expect &:= "\137;");
-      insert(state, "\138;", expect &:= "\138;");
-      insert(state, "\139;", expect &:= "\139;");
-      insert(state, "\140;", expect &:= "\140;");
-      insert(state, "\141;", expect &:= "\141;");
-      insert(state, "\142;", expect &:= "\142;");
-      insert(state, "\143;", expect &:= "\143;");
-      insert(state, "\144;", expect &:= "\144;");
-      insert(state, "\145;", expect &:= "\145;");
-      insert(state, "\146;", expect &:= "\146;");
-      insert(state, "\147;", expect &:= "\147;");
-      insert(state, "\148;", expect &:= "\148;");
-      insert(state, "\149;", expect &:= "\149;");
-      insert(state, "\150;", expect &:= "\150;");
-      insert(state, "\151;", expect &:= "\151;");
-      insert(state, "\152;", expect &:= "\152;");
-      insert(state, "\153;", expect &:= "\153;");
-      insert(state, "\154;", expect &:= "\154;");
-      insert(state, "\155;", expect &:= "\155;");
-      insert(state, "\156;", expect &:= "\156;");
-      insert(state, "\157;", expect &:= "\157;");
-      insert(state, "\158;", expect &:= "\158;");
-      insert(state, "\159;", expect &:= "\159;");
       insert(state, "\160;", expect &:= "\160;");
       insert(state, "¡",     expect &:= "¡");
       insert(state, "¤",     expect &:= "¤");
@@ -5947,6 +6062,136 @@ const proc: testTimeStampTzField (in database: testDb, in dbCategory: databaseKi
   end func;
 
 
+const proc: testPositiveYearMonthDurationField (in database: testDb, in dbCategory: databaseKind) is func
+  local
+    var testState: state is testState("durationTest", "durationField", FALSE);
+    var array duration: expect is 0 times duration.value;
+    var duration: durationColumn is duration.value;
+    var integer: row is 1;
+  begin
+    if state.details then
+      writeln("testPositiveYearMonthDurationField: " <& databaseKind);
+    end if;
+    block
+      state.statement := prepare(testDb, "CREATE TABLE " & state.tableName &
+                                 " (" & state.fieldName & " " & durationType(databaseKind) & ")");
+      execute(state.statement);
+      state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
+                                 " (" & state.fieldName & ") VALUES (?)");
+      insert(state, NULL,                        expect &:= duration.value);
+      insert(state, duration("P0Y"),             expect &:= duration("P0Y"));
+      insert(state, duration("P0M"),             expect &:= duration("P0M"));
+      insert(state, duration("P1Y"),             expect &:= duration("P1Y"));
+      insert(state, duration("P1M"),             expect &:= duration("P1M"));
+      insert(state, duration("P1Y2M"),           expect &:= duration("P1Y2M"));
+
+      state.statement := prepare(testDb, "SELECT * FROM " & state.tableName);
+      execute(state.statement);
+      while fetch(state.statement) do
+        durationColumn := column(state.statement, 1, duration);
+        if durationColumn <> expect[row] then
+          state.okay := FALSE;
+          if state.details then
+            writeln(" *** testPositiveYearMonthDurationField: Row: " <& row <&
+                    " Expected " <& literal(str(expect[row])) <&
+                    " found " <& literal(str(durationColumn)));
+          end if;
+        end if;
+        if row = 1 and not isNull(state.statement, 1) then
+          state.okay := FALSE;
+          if state.details then
+            writeln(" *** testPositiveYearMonthDurationField: Row: " <& row <&
+                    " Expected NULL found " <& durationColumn);
+          end if;
+        end if;
+        incr(row);
+      end while;
+    exception
+      catch RANGE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** RANGE_ERROR was raised");
+      catch FILE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** FILE_ERROR was raised");
+      catch DATABASE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** DATABASE_ERROR was raised: " <& errMessage(DATABASE_ERROR));
+    end block;
+    state.statement := prepare(testDb, "DROP TABLE " & state.tableName);
+    execute(state.statement);
+
+    if state.okay then
+      writeln("Inserting and fetching positive year-month duration fields works okay.");
+    else
+      writeln(" *** Inserting and fetching positive year-month duration fields does not work okay.");
+    end if;
+  end func;
+
+
+const proc: testNegativeYearMonthDurationField (in database: testDb, in dbCategory: databaseKind) is func
+  local
+    var testState: state is testState("durationTest", "durationField", FALSE);
+    var array duration: expect is 0 times duration.value;
+    var duration: durationColumn is duration.value;
+    var integer: row is 1;
+  begin
+    if state.details then
+      writeln("testNegativeYearMonthDurationField: " <& databaseKind);
+    end if;
+    block
+      state.statement := prepare(testDb, "CREATE TABLE " & state.tableName &
+                                 " (" & state.fieldName & " " & durationType(databaseKind) & ")");
+      execute(state.statement);
+      state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
+                                 " (" & state.fieldName & ") VALUES (?)");
+      insert(state, NULL,                        expect &:= duration.value);
+      insert(state, duration("P-1Y"),            expect &:= duration("P-1Y"));
+      insert(state, duration("P-1M"),            expect &:= duration("P-1M"));
+      insert(state, duration("P-1Y-2M"),         expect &:= duration("P-1Y-2M"));
+
+      state.statement := prepare(testDb, "SELECT * FROM " & state.tableName);
+      execute(state.statement);
+      while fetch(state.statement) do
+        durationColumn := column(state.statement, 1, duration);
+        if durationColumn <> expect[row] then
+          state.okay := FALSE;
+          if state.details then
+            writeln(" *** testNegativeYearMonthDurationField: Row: " <& row <&
+                    " Expected " <& literal(str(expect[row])) <&
+                    " found " <& literal(str(durationColumn)));
+          end if;
+        end if;
+        if row = 1 and not isNull(state.statement, 1) then
+          state.okay := FALSE;
+          if state.details then
+            writeln(" *** testNegativeYearMonthDurationField: Row: " <& row <&
+                    " Expected NULL found " <& durationColumn);
+          end if;
+        end if;
+        incr(row);
+      end while;
+    exception
+      catch RANGE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** RANGE_ERROR was raised");
+      catch FILE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** FILE_ERROR was raised");
+      catch DATABASE_ERROR:
+        state.okay := FALSE;
+        writeln(" *** DATABASE_ERROR was raised: " <& errMessage(DATABASE_ERROR));
+    end block;
+    state.statement := prepare(testDb, "DROP TABLE " & state.tableName);
+    execute(state.statement);
+
+    if state.okay then
+      writeln("Inserting and fetching negative year-month duration fields works okay.");
+    else
+      writeln(" *** Inserting and fetching negative year-month duration fields does not work okay.");
+    end if;
+  end func;
+
+
 const proc: testPositiveDurationField (in database: testDb, in dbCategory: databaseKind) is func
   local
     var testState: state is testState("durationTest", "durationField", FALSE);
@@ -5964,19 +6209,14 @@ const proc: testPositiveDurationField (in database: testDb, in dbCategory: datab
       state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
                                  " (" & state.fieldName & ") VALUES (?)");
       insert(state, NULL,                        expect &:= duration.value);
-      insert(state, duration("P0Y"),             expect &:= duration("P0Y"));
-      insert(state, duration("P0M"),             expect &:= duration("P0M"));
       insert(state, duration("P0D"),             expect &:= duration("P0D"));
       insert(state, duration("PT0H"),            expect &:= duration("PT0H"));
       insert(state, duration("PT0M"),            expect &:= duration("PT0M"));
       insert(state, duration("PT0S"),            expect &:= duration("PT0S"));
-      insert(state, duration("P1Y"),             expect &:= duration("P1Y"));
-      insert(state, duration("P1M"),             expect &:= duration("P1M"));
       insert(state, duration("P1D"),             expect &:= duration("P1D"));
       insert(state, duration("PT1H"),            expect &:= duration("PT1H"));
       insert(state, duration("PT1M"),            expect &:= duration("PT1M"));
       insert(state, duration("PT1S"),            expect &:= duration("PT1S"));
-      insert(state, duration("P1Y2M"),           expect &:= duration("P1Y2M"));
       insert(state, duration("P1DT2H"),          expect &:= duration("P1DT2H"));
       insert(state, duration("P30DT23H"),        expect &:= duration("P30DT23H"));
       insert(state, duration("P1DT2H3M"),        expect &:= duration("P1DT2H3M"));
@@ -6044,13 +6284,10 @@ const proc: testNegativeDurationField (in database: testDb, in dbCategory: datab
       state.statement := prepare(testDb, "INSERT INTO " & state.tableName &
                                  " (" & state.fieldName & ") VALUES (?)");
       insert(state, NULL,                        expect &:= duration.value);
-      insert(state, duration("P-1Y"),               expect &:= duration("P-1Y"));
-      insert(state, duration("P-1M"),               expect &:= duration("P-1M"));
       insert(state, duration("P-1D"),               expect &:= duration("P-1D"));
       insert(state, duration("PT-1H"),              expect &:= duration("PT-1H"));
       insert(state, duration("PT-1M"),              expect &:= duration("PT-1M"));
       insert(state, duration("PT-1S"),              expect &:= duration("PT-1S"));
-      insert(state, duration("P-1Y-2M"),            expect &:= duration("P-1Y-2M"));
       insert(state, duration("P-1DT-2H"),           expect &:= duration("P-1DT-2H"));
       insert(state, duration("P-30DT-23H"),         expect &:= duration("P-30DT-23H"));
       insert(state, duration("P-1DT-2H-3M"),        expect &:= duration("P-1DT-2H-3M"));
@@ -6853,6 +7090,7 @@ const proc: testDb (in database: testDb, in connectData: dbConnectData) is func
     testDecimalField(testDb, databaseKind);
     testNumericField(testDb, databaseKind);
     testChar1AsciiField(testDb, databaseKind);
+    testChar1Latin1C1ControlField(testDb, databaseKind);
     testChar1Latin1Field(testDb, databaseKind);
     testCodePageField(testDb, 1250, databaseKind);
     testCodePageField(testDb, 1252, databaseKind);
@@ -6866,6 +7104,8 @@ const proc: testDb (in database: testDb, in connectData: dbConnectData) is func
     testDateTimeField(testDb, databaseKind);
     testTimeStampField(testDb, databaseKind);
     testTimeStampTzField(testDb, databaseKind);
+    testPositiveYearMonthDurationField(testDb, databaseKind);
+    testNegativeYearMonthDurationField(testDb, databaseKind);
     testPositiveDurationField(testDb, databaseKind);
     testNegativeDurationField(testDb, databaseKind);
     testPositiveFractionDurationField(testDb, databaseKind);

@@ -611,7 +611,8 @@ static void freePreparedStmt (sqlStmtType sqlStatement)
       /* Ignore possible errors. */
       PQclear(deallocate_result);
     } /* if */
-    if (preparedStmt->db->usage_count != 0) {
+    if (preparedStmt->db != NULL &&
+        preparedStmt->db->usage_count != 0) {
       preparedStmt->db->usage_count--;
       if (preparedStmt->db->usage_count == 0) {
         logMessage(printf("FREE " FMT_U_MEM "\n", (memSizeType) preparedStmt->db););
@@ -1745,9 +1746,12 @@ static void sqlBindDuration (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindDuration: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year < INT32TYPE_MIN || year > INT32TYPE_MAX || month < -12 || month > 12 ||
-                        day < -31 || day > 31 || hour <= -24 || hour >= 24 ||
-                        minute <= -60 || minute >= 60 || second <= -60 || second >= 60 ||
+    } else if (unlikely(year < INT32TYPE_MIN || year > INT32TYPE_MAX ||
+                        month < -12 || month > 12 ||
+                        day < -31 || day > 31 ||
+                        hour <= -24 || hour >= 24 ||
+                        minute <= -60 || minute >= 60 ||
+                        second <= -60 || second >= 60 ||
                         micro_second <= -1000000 || micro_second >= 1000000)) {
       logError(printf("sqlBindDuration: Duration not in allowed range.\n"););
       raise_error(RANGE_ERROR);
@@ -2071,9 +2075,12 @@ static void sqlBindTime (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindTime: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year <= INT16TYPE_MIN || year > INT16TYPE_MAX || month < 1 || month > 12 ||
-                        day < 1 || day > 31 || hour < 0 || hour >= 24 ||
-                        minute < 0 || minute >= 60 || second < 0 || second >= 60 ||
+    } else if (unlikely(year <= INT16TYPE_MIN || year > INT16TYPE_MAX ||
+                        month < 1 || month > 12 ||
+                        day < 1 || day > 31 ||
+                        hour < 0 || hour >= 24 ||
+                        minute < 0 || minute >= 60 ||
+                        second < 0 || second >= 60 ||
                         micro_second < 0 || micro_second >= 1000000)) {
       logError(printf("sqlBindTime: Time not in allowed range.\n"););
       raise_error(RANGE_ERROR);
@@ -3700,9 +3707,22 @@ databaseType sqlOpenPost (const const_striType host, intType port,
               sprintf(portBuffer, FMT_D, port);
               pgport = portBuffer;
             } /* if */
+            logMessage(printf("sqlOpenPost: PQsetdbLogin(%s%s%s, "
+                              "%s%s%s, NULL, NULL, "
+                              "\"%s\", \"%s\", *)\n",
+                              host8[0] == '\0' ? "" : "\"",
+                              host8[0] == '\0' ? "NULL" : host8,
+                              host8[0] == '\0' ? "" : "\"",
+                              pgport == NULL ? "" : "\"",
+                              pgport == NULL ? "NULL" : pgport,
+                              pgport == NULL ? "" : "\"",
+                              dbName8, user8););
             db.connection = PQsetdbLogin(host8[0] == '\0' ? NULL : host8,
-                pgport, NULL /* pgoptions */, NULL /* pgtty */,
-                dbName8, user8, password8);
+                                         pgport, NULL /* pgoptions */,
+                                         NULL /* pgtty */,
+                                         dbName8, user8, password8);
+            logMessage(printf("sqlOpenPost: db.connection: " FMT_U_MEM "\n",
+                              (memSizeType) db.connection););
             if (unlikely(db.connection == NULL)) {
               logError(printf("sqlOpenPost: PQsetdbLogin(\"%s\", ...  "
                               "\"%s\", \"%s\", *) returns NULL\n",

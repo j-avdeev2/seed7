@@ -64,6 +64,12 @@
 #define MAXIMUM_UTF32_ESCAPE_WIDTH STRLEN("\\4294967295;")
 
 /**
+ *  The maximum width when an UTF-16 character is displayed
+ *  in a literal is 12 characters (e.g.: \65535; ).
+ */
+#define MAXIMUM_UTF16_ESCAPE_WIDTH STRLEN("\\65535;")
+
+/**
  *  The maximum width when an unsigned char (byte) is displayed
  *  in a literal is 5 characters (e.g.: \255; ).
  */

@@ -32,6 +32,8 @@
 #define LOG_FUNCTIONS 0
 #define VERBOSE_EXCEPTIONS 0
 
+#define LOG_CLI_FUNCTIONS 0
+
 #include "version.h"
 
 #include "stdlib.h"
@@ -144,11 +146,11 @@ static boolType createConnectionString (connectDataType connectData, boolType wi
     boolType okay = FALSE;
 
   /* createConnectionString */
-    logFunction(printf("createConnectionString([hostname=\"");
-                printWstri(connectData->hostname);
-                printf("\", port=" FMT_D ", database=\"", connectData->port);
-                printWstri(connectData->database);
-                printf("\"])\n"););
+    logFunction(printf("createConnectionString([hostname=\"%s\", port=" FMT_D,
+                       sqlwstriAsUnquotedCStri(connectData->hostname),
+                       connectData->port);
+                printf(", database=\"%s\"])\n",
+                       sqlwstriAsUnquotedCStri(connectData->database)););
 
     if (connectData->hostnameLength == 0) {
       hostname = localhost;
@@ -234,10 +236,9 @@ static boolType createConnectionString (connectDataType connectData, boolType wi
           pos += connectData->uidLength;
         } /* if */
 
-        logFunction(printf("createConnectionString --> TRUE (connectionString=\"");
-                    connectionString[pos] = '\0';
-                    printWstri(connectionString);
-                    printf("%s\")\n",
+        logFunction(connectionString[pos] = '\0';
+                    printf("createConnectionString --> TRUE (connectionString=\"%s%s\")\n",
+                           sqlwstriAsUnquotedCStri(connectionString),
                            connectData->pwdLength != 0 ? ";PWD=*" : ""););
 
         if (connectData->pwdLength != 0) {
@@ -252,9 +253,8 @@ static boolType createConnectionString (connectDataType connectData, boolType wi
         okay = TRUE;
       } /* if */
     } /* if */
-    logFunction(if (!okay) {
-                  printf("createConnectionString --> FALSE\n");
-                });
+    logFunctionIfTrue(!okay,
+                      printf("createConnectionString --> FALSE\n"););
     return okay;
   } /* createConnectionString */
 
@@ -263,8 +263,8 @@ static boolType createConnectionString (connectDataType connectData, boolType wi
 static databaseType doOpenInformix (connectDataType connectData, errInfoType *err_info)
 
   {
-    SQLHENV sql_environment;
-    SQLHDBC sql_connection;
+    SQLHENV sql_environment = NULL;
+    SQLHDBC sql_connection = NULL;
     SQLRETURN returnCode;
     SQLSMALLINT outConnectionStringLength;
     databaseType database;
@@ -284,16 +284,32 @@ static databaseType doOpenInformix (connectDataType connectData, errInfoType *er
         database = NULL;
       } else {
         if (connectData->hostnameLength == 0 && connectData->port == 0) {
+          logMessage(printf("doOpenInformix: SQLConnectW(" FMT_U_MEM
+                            ", \"%s\", " FMT_U_MEM,
+                            (memSizeType) sql_connection,
+                            sqlwstriAsUnquotedCStri(connectData->database),
+                            connectData->databaseLength);
+                     printf(", \"%s\", " FMT_U_MEM ", *, *)\n",
+                            sqlwstriAsUnquotedCStri(connectData->uid),
+                            connectData->uidLength););
           returnCode = SQLConnectW(sql_connection,
-              (SQLWCHAR *) connectData->database, (SQLSMALLINT) connectData->databaseLength,
-              (SQLWCHAR *) connectData->uid, (SQLSMALLINT) connectData->uidLength,
-              (SQLWCHAR *) connectData->pwd, (SQLSMALLINT) connectData->pwdLength);
-          if ((returnCode != SQL_SUCCESS &&
-               returnCode != SQL_SUCCESS_WITH_INFO)) {
+              connectData->database, (SQLSMALLINT) connectData->databaseLength,
+              connectData->uid, (SQLSMALLINT) connectData->uidLength,
+              connectData->pwd, (SQLSMALLINT) connectData->pwdLength);
+          if (returnCode != SQL_SUCCESS &&
+              returnCode != SQL_SUCCESS_WITH_INFO) {
             setDbErrorMsg("sqlOpenInformix", "SQLConnectW",
                           SQL_HANDLE_DBC, sql_connection);
-            logError(printf("sqlOpenInformix: SQLConnectW:\n%s\n",
-                            dbError.message););
+            logError(printf("sqlOpenInformix: SQLConnectW(" FMT_U_MEM
+                            ", \"%s\", " FMT_U_MEM,
+                            (memSizeType) sql_connection,
+                            sqlwstriAsUnquotedCStri(connectData->database),
+                            connectData->databaseLength);
+                     printf(", \"%s\", " FMT_U_MEM ", *, *):\n"
+                            "returnCode: " FMT_D16 "\n%s\n",
+                            sqlwstriAsUnquotedCStri(connectData->uid),
+                            connectData->uidLength,
+                            returnCode, dbError.message););
           } /* if */
         } else {
           returnCode = SQL_ERROR;

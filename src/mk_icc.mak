@@ -131,21 +131,21 @@ next_lvl: levelup
 OBJCOPY_PARAMS = \
        -L SQLAllocHandle -L SQLBindCol -L SQLBindParameter -L SQLBrowseConnectW -L SQLColAttributeW \
        -L SQLConnectW -L SQLDataSources -L SQLDescribeColW -L SQLDescribeParam -L SQLDisconnect \
-       -L SQLDriverConnectW -L SQLDriversW -L SQLExecute -L SQLFetch -L SQLFreeHandle \
-       -L SQLFreeStmt -L SQLGetData -L SQLGetDiagRecW -L SQLGetInfoW -L SQLGetStmtAttrW \
-       -L SQLGetTypeInfoW -L SQLNumParams -L SQLNumResultCols -L SQLPrepareW -L SQLSetDescFieldW \
-       -L SQLSetEnvAttr
+       -L SQLDriverConnectW -L SQLDriversW -L SQLEndTran -L SQLExecute -L SQLFetch -L SQLFreeHandle \
+       -L SQLFreeStmt -L SQLGetConnectAttrW -L SQLGetData -L SQLGetDiagRecW -L SQLGetInfoW \
+       -L SQLGetStmtAttrW -L SQLGetTypeInfoW -L SQLNumParams -L SQLNumResultCols -L SQLPrepareW \
+       -L SQLSetConnectAttrW -L SQLSetDescFieldW -L SQLSetEnvAttr
 
-sql_db2.o: sql_db2.c
-	$(CC) $(CPPFLAGS) $(DB2_INCLUDE_OPTION) $(CFLAGS) $(DB2_LIBS) -c $(LINKER_OPT_PARTIAL_LINKING) -o $@ $<
+sql_db2.o: sql_db2.c sql_cli.c sql_log.c
+	$(CC) $(CPPFLAGS) $(DB2_INCLUDE_OPTION) $(CFLAGS) $< $(DB2_LIBS) $(DB2_CC_OPTION) -o $@
 	$(OBJCOPY) $(OBJCOPY_PARAMS) $@
 
-sql_ifx.o: sql_ifx.c
-	$(CC) $(CPPFLAGS) $(INFORMIX_INCLUDE_OPTION) $(CFLAGS) $(INFORMIX_LIBS) -c $(LINKER_OPT_PARTIAL_LINKING) -o $@ $<
+sql_ifx.o: sql_ifx.c sql_cli.c sql_log.c
+	$(CC) $(CPPFLAGS) $(INFORMIX_INCLUDE_OPTION) $(CFLAGS) $< $(INFORMIX_LIBS) $(INFORMIX_CC_OPTION) -o $@
 	$(OBJCOPY) $(OBJCOPY_PARAMS) $@
 
-sql_srv.o: sql_srv.c
-	$(CC) $(CPPFLAGS) $(SQL_SERVER_INCLUDE_OPTION) $(CFLAGS) $(SQL_SERVER_LIBS) -c $(LINKER_OPT_PARTIAL_LINKING) -o $@ $<
+sql_srv.o: sql_srv.c sql_cli.c sql_log.c
+	$(CC) $(CPPFLAGS) $(SQL_SERVER_INCLUDE_OPTION) $(CFLAGS) $< $(SQL_SERVER_LIBS) $(SQL_SERVER_CC_OPTION) -o $@
 	$(OBJCOPY) $(OBJCOPY_PARAMS) $@
 
 all: depend

@@ -9,7 +9,8 @@
 # CFLAGS = -O2 -fomit-frame-pointer -Wall -Wstrict-prototypes -Winline -Wconversion -Wshadow -Wpointer-arith
 # CFLAGS = -O2 -g -Wall -Wextra -Wswitch-default -Wswitch-enum -Wcast-qual -Waggregate-return -Wwrite-strings -Wstrict-prototypes -Winline -Wconversion -Wshadow -Wpointer-arith -Wmissing-noreturn -Wno-multichar -Wc++-compat
 # CFLAGS = -O2 -fomit-frame-pointer -pedantic -Wall -Wextra -Wswitch-default -Wcast-qual -Wlogical-op -Waggregate-return -Wwrite-strings -Wstrict-prototypes -Winline -Wconversion -Wshadow -Wpointer-arith -Wmissing-noreturn -Wno-multichar -Wpadded
-CFLAGS = -O2 -g -ffunction-sections -fdata-sections $(INCLUDE_OPTIONS) $(CC_OPT_LINK_TIME_OPTIMIZATION) -Wall -Wstrict-prototypes -Winline -Wconversion -Wshadow -Wpointer-arith
+CFLAGS_NO_FLTO = -O2 -g -ffunction-sections -fdata-sections $(INCLUDE_OPTIONS) -Wall -Wstrict-prototypes -Winline -Wconversion -Wshadow -Wpointer-arith
+CFLAGS = $(CC_OPT_LINK_TIME_OPTIMIZATION) $(CFLAGS_NO_FLTO)
 # CFLAGS = -O2 -g -Wall -Winline -Wconversion -Wshadow -Wpointer-arith
 # CFLAGS = -O2 -g -Wall
 # CFLAGS = -O2 -g -pg -Wall -Wstrict-prototypes -Winline -Wconversion -Wshadow -Wpointer-arith
@@ -124,21 +125,21 @@ next_lvl: levelup.exe
 OBJCOPY_PARAMS = \
        -L SQLAllocHandle -L SQLBindCol -L SQLBindParameter -L SQLBrowseConnectW -L SQLColAttributeW \
        -L SQLConnectW -L SQLDataSources -L SQLDescribeColW -L SQLDescribeParam -L SQLDisconnect \
-       -L SQLDriverConnectW -L SQLDriversW -L SQLExecute -L SQLFetch -L SQLFreeHandle \
-       -L SQLFreeStmt -L SQLGetData -L SQLGetDiagRecW -L SQLGetInfoW -L SQLGetStmtAttrW \
-       -L SQLGetTypeInfoW -L SQLNumParams -L SQLNumResultCols -L SQLPrepareW -L SQLSetDescFieldW \
-       -L SQLSetEnvAttr
+       -L SQLDriverConnectW -L SQLDriversW -L SQLEndTran -L SQLExecute -L SQLFetch -L SQLFreeHandle \
+       -L SQLFreeStmt -L SQLGetConnectAttrW -L SQLGetData -L SQLGetDiagRecW -L SQLGetInfoW \
+       -L SQLGetStmtAttrW -L SQLGetTypeInfoW -L SQLNumParams -L SQLNumResultCols -L SQLPrepareW \
+       -L SQLSetConnectAttrW -L SQLSetDescFieldW -L SQLSetEnvAttr
 
-sql_db2.o: sql_db2.c
-	$(CC) $(CPPFLAGS) $(DB2_INCLUDE_OPTION) $(CFLAGS) $(DB2_LIBS) -c $(LINKER_OPT_PARTIAL_LINKING) -o $@ $<
+sql_db2.o: sql_db2.c sql_cli.c sql_log.c
+	$(CC) $(CPPFLAGS) $(DB2_INCLUDE_OPTION) $(CFLAGS_NO_FLTO) $< $(DB2_LIBS) $(DB2_CC_OPTION) -o $@
 	$(OBJCOPY) $(OBJCOPY_PARAMS) $@
 
-sql_ifx.o: sql_ifx.c
-	$(CC) $(CPPFLAGS) $(INFORMIX_INCLUDE_OPTION) $(CFLAGS) $(INFORMIX_LIBS) -c $(LINKER_OPT_PARTIAL_LINKING) -o $@ $<
+sql_ifx.o: sql_ifx.c sql_cli.c sql_log.c
+	$(CC) $(CPPFLAGS) $(INFORMIX_INCLUDE_OPTION) $(CFLAGS_NO_FLTO) $< $(INFORMIX_LIBS) $(INFORMIX_CC_OPTION) -o $@
 	$(OBJCOPY) $(OBJCOPY_PARAMS) $@
 
-sql_srv.o: sql_srv.c
-	$(CC) $(CPPFLAGS) $(SQL_SERVER_INCLUDE_OPTION) $(CFLAGS) $(SQL_SERVER_LIBS) -c $(LINKER_OPT_PARTIAL_LINKING) -o $@ $<
+sql_srv.o: sql_srv.c sql_cli.c sql_log.c
+	$(CC) $(CPPFLAGS) $(SQL_SERVER_INCLUDE_OPTION) $(CFLAGS_NO_FLTO) $< $(SQL_SERVER_LIBS) $(SQL_SERVER_CC_OPTION) -o $@
 	$(OBJCOPY) $(OBJCOPY_PARAMS) $@
 
 all: depend

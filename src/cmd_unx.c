@@ -280,15 +280,14 @@ int unsetenv7 (const char *name)
           } /* if */
         } /* for */
         if (found != NULL) {
-          resizedEnviron7 = realloc(environ7, sizeof(char *) * (nameCount));
-          if (resizedEnviron7 == NULL) {
-            errno = ENOMEM;
-            return -1;
-          } else {
-            environ7 = resizedEnviron7;
-            free(*found);
+          free(*found);
+          if (found != &environ7[nameCount - 1]) {
             *found = environ7[nameCount - 1];
-            environ7[nameCount - 1] = NULL;
+          } /* if */
+          environ7[nameCount - 1] = NULL;
+          resizedEnviron7 = realloc(environ7, sizeof(char *) * (nameCount));
+          if (resizedEnviron7 != NULL) {
+            environ7 = resizedEnviron7;
           } /* if */
         } /* if */
       } /* if */

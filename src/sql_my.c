@@ -365,7 +365,8 @@ static void freePreparedStmt (sqlStmtType sqlStatement)
       FREE_TABLE(preparedStmt->result_data_array, resultDataRecordMy, preparedStmt->result_array_size);
     } /* if */
     mysql_stmt_close(preparedStmt->ppStmt);
-    if (preparedStmt->db->usage_count != 0) {
+    if (preparedStmt->db != NULL &&
+        preparedStmt->db->usage_count != 0) {
       preparedStmt->db->usage_count--;
       if (preparedStmt->db->usage_count == 0) {
         logMessage(printf("FREE " FMT_U_MEM "\n", (memSizeType) preparedStmt->db););
@@ -491,10 +492,13 @@ static striType processStatementStri (const const_striType sqlStatementStri,
             } /* while */
             if (pos < sqlStatementStri->size) {
               pos++;
-              if (pos < sqlStatementStri->size &&
-                  (ch = sqlStatementStri->mem[pos]) == '"') {
-                processed->mem[destPos++] = '"';
-                pos++;
+              if (pos < sqlStatementStri->size) {
+                if ((ch = sqlStatementStri->mem[pos]) == '"') {
+                  processed->mem[destPos++] = ch;
+                  pos++;
+                } /* if */
+              } else {
+                processed->mem[destPos++] = '`';
               } /* if */
             } /* if */
           } while (pos < sqlStatementStri->size && ch == '"');
@@ -600,8 +604,9 @@ static errInfoType setupResultColumn (preparedStmtType preparedStmt,
   /* setupResultColumn */
     logFunction(printf("setupResultColumn: column_num=%d\n", column_num););
     column = mysql_fetch_field_direct(result_metadata, column_num - 1);
-    /* printf("column[%u]->type: %s\n", column_num, nameOfBufferType(column->type)); */
-    /* printf("charsetnr: %u\n", column->charsetnr); */
+    logMessage(printf("column[%u]->type: %s\n", column_num,
+                      nameOfBufferType(column->type)););
+    logMessage(printf("charsetnr: %u\n", column->charsetnr););
     switch (column->type) {
       case MYSQL_TYPE_TINY:
         buffer_length = 1;
@@ -671,7 +676,7 @@ static errInfoType setupResultColumn (preparedStmtType preparedStmt,
         err_info = RANGE_ERROR;
         break;
     } /* switch */
-    /* printf("buffer_length: " FMT_U_MEM "\n", buffer_length); */
+    logMessage(printf("buffer_length: " FMT_U_MEM "\n", buffer_length););
     if (err_info == OKAY_NO_ERROR) {
       if (buffer_length != 0) {
         resultData->buffer = malloc(buffer_length);
@@ -728,7 +733,7 @@ static errInfoType setupResult (preparedStmtType preparedStmt)
       preparedStmt->result_data_array = NULL;
     } else {
       num_columns = mysql_num_fields(result_metadata);
-      /* printf("num_columns: %u\n", num_columns); */
+      logMessage(printf("num_columns: %u\n", num_columns););
       if (num_columns == 0) {
         /* malloc(0) may return NULL, which would wrongly trigger a MEMORY_ERROR. */
         preparedStmt->result_array_size = 0;
@@ -1173,9 +1178,12 @@ static void sqlBindDuration (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindDuration: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year < -INT_MAX || year > INT_MAX || month < -12 || month > 12 ||
-                        day < -31 || day > 31 || hour <= -24 || hour >= 24 ||
-                        minute <= -60 || minute >= 60 || second <= -60 || second >= 60 ||
+    } else if (unlikely(year < -INT_MAX || year > INT_MAX ||
+                        month < -12 || month > 12 ||
+                        day < -31 || day > 31 ||
+                        hour <= -24 || hour >= 24 ||
+                        minute <= -60 || minute >= 60 ||
+                        second <= -60 || second >= 60 ||
                         micro_second <= -1000000 || micro_second >= 1000000)) {
       logError(printf("sqlBindDuration: Duration not in allowed range.\n"););
       raise_error(RANGE_ERROR);
@@ -1199,8 +1207,8 @@ static void sqlBindDuration (sqlStmtType sqlStatement, intType pos,
                                (int64Type) minute) * 60 +
                                (int64Type) second) * 1000000 +
                                (int64Type) micro_second;
-        /* printf("monthDuration: " FMT_D64 "\n", monthDuration);
-           printf("microsecDuration: " FMT_D64 "\n", microsecDuration); */
+        logMessage(printf("monthDuration: " FMT_D64 "\n", monthDuration););
+        logMessage(printf("microsecDuration: " FMT_D64 "\n", microsecDuration););
         if (unlikely(!((monthDuration >= 0 && microsecDuration >= 0) ||
                        (monthDuration <= 0 && microsecDuration <= 0)))) {
           logError(printf("sqlBindDuration: Duration neither clearly positive nor negative.\n"););
@@ -1445,9 +1453,12 @@ static void sqlBindTime (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindTime: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year < -INT_MAX || year > INT_MAX || month < 1 || month > 12 ||
-                        day < 1 || day > 31 || hour < 0 || hour >= 24 ||
-                        minute < 0 || minute >= 60 || second < 0 || second >= 60 ||
+    } else if (unlikely(year < -INT_MAX || year > INT_MAX ||
+                        month < 1 || month > 12 ||
+                        day < 1 || day > 31 ||
+                        hour < 0 || hour >= 24 ||
+                        minute < 0 || minute >= 60 ||
+                        second < 0 || second >= 60 ||
                         micro_second < 0 || micro_second >= 1000000)) {
       logError(printf("sqlBindTime: Time not in allowed range.\n"););
       raise_error(RANGE_ERROR);
@@ -1794,7 +1805,7 @@ static bstriType sqlColumnBStri (sqlStmtType sqlStatement, intType column)
               columnValue = NULL;
             } else {
               length = columnData->length_value;
-              /* printf("length: %lu\n", length); */
+              logMessage(printf("length: " FMT_U_MEM "\n", length););
               if (length > 0) {
                 if (unlikely(!ALLOC_BSTRI_CHECK_SIZE(columnValue, length))) {
                   raise_error(MEMORY_ERROR);
@@ -2153,7 +2164,7 @@ static striType sqlColumnStri (sqlStmtType sqlStatement, intType column)
           case MYSQL_TYPE_MEDIUM_BLOB:
           case MYSQL_TYPE_LONG_BLOB:
             length = columnData->length_value;
-            /* printf("length: %lu\n", length); */
+            logMessage(printf("length: " FMT_U_MEM "\n", length););
             if (length > 0) {
               if (preparedStmt->result_data_array[column - 1].binary) {
                 if (unlikely(!ALLOC_STRI_CHECK_SIZE(columnValue, length))) {
@@ -2886,15 +2897,15 @@ static boolType setupFuncTable (void)
 
 
 
-static void determineIfBackslashEscapes (dbType database)
+static boolType determineIfBackslashEscapes (dbType database)
 
   {
     striType statementStri;
     sqlStmtType preparedStmt;
     striType data;
+    boolType backslashEscapes = FALSE;
 
   /* determineIfBackslashEscapes */
-    database->backslashEscapes = FALSE;
     statementStri = cstri_to_stri("SELECT '\\\\'");
     if (likely(statementStri != NULL)) {
       preparedStmt = sqlPrepare((databaseType) database, statementStri);
@@ -2905,7 +2916,7 @@ static void determineIfBackslashEscapes (dbType database)
           if (data->size == 1 && data->mem[0] == '\\') {
             /* A select for two backslashes returns just one backslash. */
             /* This happens if the database uses backslash as escape char. */
-            database->backslashEscapes = TRUE;
+            backslashEscapes = TRUE;
           } /* if */
           FREE_STRI(data);
         } /* if */
@@ -2913,7 +2924,9 @@ static void determineIfBackslashEscapes (dbType database)
       } /* if */
       FREE_STRI(statementStri);
     } /* if */
-    /* printf("backslashEscapes: %d\n", database->backslashEscapes); */
+    logFunction(printf("determineIfBackslashEscapes --> %d\n",
+                       backslashEscapes););
+    return backslashEscapes;
   } /* determineIfBackslashEscapes */
 
 
@@ -3010,7 +3023,7 @@ databaseType sqlOpenMy (const const_striType host, intType port,
                   database->driver = DB_CATEGORY_MYSQL;
                   database->connection = connection;
                   database->autoCommit = TRUE;
-                  determineIfBackslashEscapes(database);
+                  database->backslashEscapes = determineIfBackslashEscapes(database);
                 } /* if */
               } /* if */
             } /* if */

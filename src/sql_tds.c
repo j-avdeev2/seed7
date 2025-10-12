@@ -422,7 +422,8 @@ static void freePreparedStmt (sqlStmtType sqlStatement)
       } /* for */
       FREE_TABLE(preparedStmt->result_array, resultDataRecordTds, preparedStmt->result_array_size);
     } /* if */
-    if (preparedStmt->db->usage_count != 0) {
+    if (preparedStmt->db != NULL &&
+        preparedStmt->db->usage_count != 0) {
       preparedStmt->db->usage_count--;
       if (preparedStmt->db->usage_count == 0) {
         logMessage(printf("FREE " FMT_U_MEM "\n", (memSizeType) preparedStmt->db););
@@ -786,7 +787,8 @@ static errInfoType setupResultColumn (preparedStmtType preparedStmt,
     } else {
       /* printf("Type: " FMT_D16 ", VarLength: %d\n", dbcol.Type, dbcol.VarLength); */
       columnData->buffer_type = dbcol.Type;
-      /* printf("buffer_type: %s\n", nameOfBufferType(columnData->buffer_type)); */
+      logMessage(printf("buffer_type: %s\n",
+                        nameOfBufferType(columnData->buffer_type)););
       switch (columnData->buffer_type) {
         case SYBCHAR:
           bind_type = STRINGBIND;
@@ -891,7 +893,7 @@ static errInfoType setupResult (preparedStmtType preparedStmt)
   /* setupResult */
     logFunction(printf("setupResult\n"););
     num_columns = dbnumcols(preparedStmt->dbproc);
-    /* printf("num_columns: %d\n", num_columns); */
+    logMessage(printf("num_columns: %d\n", num_columns););
     if (unlikely(num_columns < 0)) {
       dbInconsistent("setupResult", "dbnumcols");
       logError(printf("setupResult: dbnumcols returns negative number: %d\n",
@@ -1406,9 +1408,12 @@ static void sqlBindDuration (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindDuration: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year < -9999 || year > 9999 || month < -12 || month > 12 ||
-                        day < -31 || day > 31 || hour <= -24 || hour >= 24 ||
-                        minute <= -60 || minute >= 60 || second <= -60 || second >= 60 ||
+    } else if (unlikely(year < -9999 || year > 9999 ||
+                        month < -12 || month > 12 ||
+                        day < -31 || day > 31 ||
+                        hour <= -24 || hour >= 24 ||
+                        minute <= -60 || minute >= 60 ||
+                        second <= -60 || second >= 60 ||
                         micro_second <= -1000000 || micro_second >= 1000000)) {
       logError(printf("sqlBindDuration: Duration not in allowed range.\n"););
       raise_error(RANGE_ERROR);
@@ -1530,9 +1535,12 @@ static void sqlBindTime (sqlStmtType sqlStatement, intType pos,
       logError(printf("sqlBindTime: pos: " FMT_D ", max pos: " FMT_U_MEM ".\n",
                       pos, preparedStmt->param_array_size););
       raise_error(RANGE_ERROR);
-    } else if (unlikely(year < -9999 || year > 9999 || month < 1 || month > 12 ||
-                        day < 1 || day > 31 || hour < 0 || hour >= 24 ||
-                        minute < 0 || minute >= 60 || second < 0 || second >= 60 ||
+    } else if (unlikely(year < -9999 || year > 9999 ||
+                        month < 1 || month > 12 ||
+                        day < 1 || day > 31 ||
+                        hour < 0 || hour >= 24 ||
+                        minute < 0 || minute >= 60 ||
+                        second < 0 || second >= 60 ||
                         micro_second < 0 || micro_second >= 1000000)) {
       logError(printf("sqlBindTime: Time not in allowed range.\n"););
       raise_error(RANGE_ERROR);
