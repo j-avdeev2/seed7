@@ -1899,6 +1899,7 @@ static void writeMacroDefs (FILE *versionFile)
     char macroDefs[BUFFER_SIZE];
 
   /* writeMacroDefs */
+    macroDefs[0] = '\0';
     if (compileAndLinkOk("static inline int test(int a){return 2*a;}\n"
                          "int main(int argc,char *argv[]){return test(argc);}\n")) {
       /* The C compiler accepts the definition of inline functions. */
@@ -1911,13 +1912,17 @@ static void writeMacroDefs (FILE *versionFile)
     } else {
       fputs("#define inline\n", versionFile);
     } /* if */
+    if (!compileAndLinkOk("int main(int argc,char *argv[])\n"
+                          "{register int a; return 0;}\n")) {
+      fputs("#define register\n", versionFile);
+      strcat(macroDefs, "#define register\\n");
+    } /* if */
     if (!compileAndLinkOk("int test (int *restrict ptrA, int *restrict ptrB, int *restrict ptrC)\n"
                           "{*ptrA += *ptrC; *ptrB += *ptrC; return *ptrA + *ptrB;}\n"
                           "int main(int argc,char *argv[])\n"
                           "{int a=1, b=2, c=3; return test(&a, &b, &c);}\n")) {
       fputs("#define restrict\n", versionFile);
     } /* if */
-    macroDefs[0] = '\0';
     if (compileAndLinkOk("#include <stdio.h>\nint main(int argc,char *argv[])\n"
                          "{if(__builtin_expect(1,1))puts(\"1\");else puts(\"0\");\n"
                          "return 0;}\n") && doTest() == 1) {
@@ -11100,6 +11105,15 @@ static void writeReadBufferEmptyMacro (FILE *versionFile)
                                 "{FILE*fp;fp->_r <= 0;return 0;}\n")) {
       define_read_buffer_empty = "#define read_buffer_empty(fp) ((fp)->_r <= 0)";
     } else if (compileAndLinkOk("#include<stdio.h>\nint main(int argc,char *argv[])\n"
+                                "{FILE*fp;((struct __sFILE_fake *) fp)->_r <= 0;return 0;}\n")) {
+      define_read_buffer_empty = "#define read_buffer_empty(fp) (((struct __sFILE_fake *) (fp))->_r <= 0)";
+    } else if (compileAndLinkOk("#include<stdio.h>\nint main(int argc,char *argv[])\n"
+                                "{FILE*fp;((struct __sFILE64 *) fp)->_r <= 0;return 0;}\n")) {
+      define_read_buffer_empty = "#define read_buffer_empty(fp) (((struct __sFILE64 *) (fp))->_r <= 0)";
+    } else if (compileAndLinkOk("#include<stdio.h>\nint main(int argc,char *argv[])\n"
+                                "{FILE*fp;((struct __sFILE *) fp)->_r <= 0;return 0;}\n")) {
+      define_read_buffer_empty = "#define read_buffer_empty(fp) (((struct __sFILE *) (fp))->_r <= 0)";
+    } else if (compileAndLinkOk("#include<stdio.h>\nint main(int argc,char *argv[])\n"
                                 "{FILE*fp;fp->ptr >= fp->getend;return 0;}\n")) {
       define_read_buffer_empty = "#define read_buffer_empty(fp) ((fp)->ptr >= (fp)->getend)";
     } else if (compileAndLinkOk("#include<stdio.h>\nint main(int argc,char *argv[])\n"
@@ -11585,11 +11599,15 @@ int main (int argc, char **argv)
                          "test(aUnion.gen);return 0;}\n")) {
       fprintf(versionFile, "#define UNIONS_CAN_CONVERT_TO_GENERIC %d\n", doTest() == 1);
     } /* if */
-    if (assertCompAndLnk("#include <stdio.h>\n#include <string.h>\n"
+    if (assertCompAndLnk("#include <stdio.h>\n#include <stdlib.h>\n"
+                         "#include <string.h>\n"
                          "int main(int argc,char *argv[]){\n"
-                         "char buffer[5];\n"
+                         "char *buffer;\n"
+                         "argc <<= 3;\n"
+                         "buffer = (char *) malloc(5);\n"
                          "memcpy(buffer, \"abcd\", 5);\n"
-                         "memcpy(&buffer[1], \"xy\", 0);\n"
+                         "memcpy(&buffer[1], \"xy\", argc);\n"
+                         "memcpy(&buffer[5], \"xy\", argc);\n"
                          "printf(\"%d\\n\", memcmp(buffer, \"abcd\", 5) == 0);\n"
                          "return 0;}\n")) {
       fprintf(versionFile, "#define MEMCPY_ZERO_BYTES_DOES_NOTHING %d\n", doTest() == 1);
@@ -11654,19 +11672,29 @@ int main (int argc, char **argv)
     fprintf(versionFile, "#define MEMCMP_WITH_SIZE_0_RETURNS_0 %d\n",
         compileAndLinkOk("#include <stdio.h>\n#include <string.h>\n"
                          "int main(int argc, char *argv[]){\n"
-                         "char stri1[3], stri2[3], *stri3, *stri4;\n"
+                         "char stri1[3], stri2[3], *stri3, *stri4, *stri5, *stri6;\n"
                          "int size;\n"
                          "strcpy(stri1, \"za\");\n"
                          "strcpy(stri2, \"az\");\n"
                          "stri3 = NULL;\n"
                          "stri4 = NULL;\n"
+                         "stri5 = (char *) malloc(3);\n"
+                         "strcpy(stri5, \"za\"); \n"
+                         "stri6 = (char *) malloc(3);\n"
+                         "strcpy(stri6, \"az\");\n"
                          "size = 0;\n"
                          "printf(\"%d\\n\",\n"
                          "       memcmp(stri1, stri2, size) == 0 &&\n"
                          "       memcmp(stri2, stri1, size) == 0 &&\n"
                          "       memcmp(stri1, stri4, size) == 0 &&\n"
                          "       memcmp(stri3, stri2, size) == 0 &&\n"
-                         "       memcmp(stri3, stri4, size) == 0);\n"
+                         "       memcmp(stri3, stri4, size) == 0 &&\n"
+                         "       memcmp(stri1, &stri5[3], size) == 0 &&\n"
+                         "       memcmp(&stri5[3], stri1, size) == 0 &&\n"
+                         "       memcmp(stri3, &stri5[3], size) == 0 &&\n"
+                         "       memcmp(&stri5[3], stri3, size) == 0 &&\n"
+                         "       memcmp(&stri5[3], &stri6[3], size) == 0 &&\n"
+                         "       memcmp(&stri5[3], &stri6[3], size) == 0);\n"
                          "return 0;}\n") && doTest() == 1);
     fprintf(versionFile, "#define HAS_WMEMCMP %d\n",
         compileAndLinkOk("#include <stdio.h>\n#include <wchar.h>\n"

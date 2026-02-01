@@ -796,20 +796,26 @@ static striType doGetsFromTerminal (fileType inFile, intType length)
         raise_error(RANGE_ERROR);
         result = NULL;
       } else {
-        if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+        emptyStriType emptyStri;
+
+        if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
           raise_error(MEMORY_ERROR);
         } else {
-          result->size = 0;
+          emptyStri->size = 0;
         } /* if */
+        result = (striType) emptyStri;
       } /* if */
     } else {
       ch = readCharFromTerminal(cInFile, &sigintReceived);
       if (unlikely(sigintReceived)) {
-        if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+        emptyStriType emptyStri;
+
+        if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
           raise_error(MEMORY_ERROR);
         } else {
-          result->size = 0;
+          emptyStri->size = 0;
         } /* if */
+        result = (striType) emptyStri;
       } else {
         if (ch != EOF) {
           ungetc(ch, cInFile);
@@ -838,11 +844,14 @@ static striType doLineReadFromTerminal (fileType inFile, charType *terminationCh
     cInFile = inFile->cFile;
     ch = readCharFromTerminal(cInFile, &sigintReceived);
     if (unlikely(sigintReceived)) {
-      if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+      emptyStriType emptyStri;
+
+      if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
         raise_error(MEMORY_ERROR);
       } else {
-        result->size = 0;
+        emptyStri->size = 0;
       } /* if */
+      result = (striType) emptyStri;
     } else {
       if (ch != EOF) {
         ungetc(ch, cInFile);
@@ -870,11 +879,14 @@ static striType doWordReadFromTerminal (fileType inFile, charType *terminationCh
     cInFile = inFile->cFile;
     ch = readCharFromTerminal(cInFile, &sigintReceived);
     if (unlikely(sigintReceived)) {
-      if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+      emptyStriType emptyStri;
+
+      if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
         raise_error(MEMORY_ERROR);
       } else {
-        result->size = 0;
+        emptyStri->size = 0;
       } /* if */
+      result = (striType) emptyStri;
     } else {
       if (ch != EOF) {
         ungetc(ch, cInFile);
@@ -1206,7 +1218,8 @@ boolType filEof (fileType inFile)
     boolType eofIndicator;
 
   /* filEof */
-    logFunction(printf("filEof(%s%d)\n",
+    logFunction(printf("filEof(" FMT_U_MEM " %s%d)\n",
+                       (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0););
     cInFile = inFile->cFile;
@@ -1217,8 +1230,7 @@ boolType filEof (fileType inFile)
     } else {
       eofIndicator = feof(cInFile) != 0;
     } /* if */
-    logFunction(printf("filEof(%d) --> %d\n",
-                       safe_fileno(cInFile), eofIndicator););
+    logFunction(printf("filEof --> %d\n", eofIndicator););
     return eofIndicator;
   } /* filEof */
 
@@ -1313,6 +1325,11 @@ charType filGetcChkCtrlC (fileType inFile)
     charType result;
 
   /* filGetcChkCtrlC */
+    logFunction(printf("filGetcChkCtrlC(" FMT_U_MEM " %s%d)\n",
+                       (memSizeType) inFile,
+                       inFile == NULL ? "NULL " : "",
+                       inFile != NULL ? safe_fileno(inFile->cFile)
+                                      : 0););
     cInFile = inFile->cFile;
     if (unlikely(cInFile == NULL)) {
       logError(printf("filGetcChkCtrlC: Attempt to read from closed file.\n"););
@@ -1326,6 +1343,8 @@ charType filGetcChkCtrlC (fileType inFile)
         result = (charType) getc(cInFile);
       } /* if */
     } /* if */
+    logFunction(printf("filGetcChkCtrlC --> '\\" FMT_U32 ";'\n",
+                       result););
     return result;
   } /* filGetcChkCtrlC */
 
@@ -1362,7 +1381,8 @@ striType filGets (fileType inFile, intType length)
     striType result;
 
   /* filGets */
-    logFunction(printf("filGets(%s%d, " FMT_D ")\n",
+    logFunction(printf("filGets(" FMT_U_MEM " %s%d, " FMT_D ")\n",
+                       (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0,
                        length););
@@ -1378,11 +1398,14 @@ striType filGets (fileType inFile, intType length)
         raise_error(RANGE_ERROR);
         result = NULL;
       } else {
-        if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+        emptyStriType emptyStri;
+
+        if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
           raise_error(MEMORY_ERROR);
         } else {
-          result->size = 0;
+          emptyStri->size = 0;
         } /* if */
+        result = (striType) emptyStri;
       } /* if */
 #if FREAD_WRONG_FOR_WRITE_ONLY_FILES
     } else if (unlikely(!inFile->readingAllowed)) {
@@ -1485,7 +1508,8 @@ striType filGetsChkCtrlC (fileType inFile, intType length)
     striType result;
 
   /* filGetsChkCtrlC */
-    logFunction(printf("filGetsChkCtrlC(%s%d, " FMT_D ")\n",
+    logFunction(printf("filGetsChkCtrlC(" FMT_U_MEM " %s%d, " FMT_D ")\n",
+                       (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0,
                        length););
@@ -1522,7 +1546,8 @@ boolType filHasNext (fileType inFile)
     boolType hasNext;
 
   /* filHasNext */
-    logFunction(printf("filHasNext(%s%d)\n",
+    logFunction(printf("filHasNext(" FMT_U_MEM " %s%d)\n",
+                       (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0););
     cInFile = inFile->cFile;
@@ -1565,7 +1590,8 @@ boolType filHasNextChkCtrlC (fileType inFile)
     boolType hasNext;
 
   /* filHasNextChkCtrlC */
-    logFunction(printf("filHasNextChkCtrlC(%s%d)\n",
+    logFunction(printf("filHasNextChkCtrlC(" FMT_U_MEM " %s%d)\n",
+                       (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0););
     cInFile = inFile->cFile;
@@ -1628,7 +1654,8 @@ striType filLineRead (fileType inFile, charType *terminationChar)
     striType result;
 
   /* filLineRead */
-    logFunction(printf("filLineRead(%s%d, '\\" FMT_U32 ";')\n",
+    logFunction(printf("filLineRead(" FMT_U_MEM " %s%d, '\\"
+                       FMT_U32 ";')\n", (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0,
                        *terminationChar););
@@ -1712,7 +1739,8 @@ striType filLineReadChkCtrlC (fileType inFile, charType *terminationChar)
     striType result;
 
   /* filLineReadChkCtrlC */
-    logFunction(printf("filLineReadChkCtrlC(%s%d, '\\" FMT_U32 ";')\n",
+    logFunction(printf("filLineReadChkCtrlC(" FMT_U_MEM " %s%d, '\\"
+                       FMT_U32 ";')\n", (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0,
                        *terminationChar););
@@ -1782,7 +1810,8 @@ intType filLng (fileType aFile)
     intType length;
 
   /* filLng */
-    logFunction(printf("filLng(%s%d)\n",
+    logFunction(printf("filLng(" FMT_U_MEM " %s%d)\n",
+                       (memSizeType) aFile,
                        aFile == NULL ? "NULL " : "",
                        aFile != NULL ? safe_fileno(aFile->cFile) : 0););
     cFile = aFile->cFile;
@@ -1850,7 +1879,8 @@ static cFileType cFileOpen (const const_striType path,
     logFunction(printf("cFileOpen(\"%s\", \"" FMT_S_OS "\", *)\n",
                        striAsUnquotedCStri(path), os_mode););
     os_path = cp_to_os_path(path, &path_info, err_info);
-    /* printf("os_path \"%ls\" %d %d\n", os_path, path_info, *err_info); */
+    logMessage(printf("cFileOpen: os_path \"" FMT_S_OS "\" %d %d\n",
+                      os_path, path_info, *err_info););
     if (unlikely(os_path == NULL)) {
 #if MAP_ABSOLUTE_PATH_TO_DRIVE_LETTERS
       if (path_info == PATH_IS_EMULATED_ROOT ||
@@ -2212,7 +2242,8 @@ void filSeek (fileType aFile, intType position)
     cFileType cFile;
 
   /* filSeek */
-    logFunction(printf("filSeek(%s%d, " FMT_D ")\n",
+    logFunction(printf("filSeek(" FMT_U_MEM " %s%d, " FMT_D ")\n",
+                       (memSizeType) aFile,
                        aFile == NULL ? "NULL " : "",
                        aFile != NULL ? safe_fileno(aFile->cFile) : 0,
                        position););
@@ -2273,7 +2304,8 @@ boolType filSeekable (fileType aFile)
     boolType seekable;
 
   /* filSeekable */
-    logFunction(printf("filSeekable(%s%d)\n",
+    logFunction(printf("filSeekable(" FMT_U_MEM " %s%d)\n",
+                       (memSizeType) aFile,
                        aFile == NULL ? "NULL " : "",
                        aFile != NULL ? safe_fileno(aFile->cFile) : 0););
     cFile = aFile->cFile;
@@ -2353,7 +2385,8 @@ intType filTell (fileType aFile)
     intType position;
 
   /* filTell */
-    logFunction(printf("filTell(%s%d)\n",
+    logFunction(printf("filTell(" FMT_U_MEM " %s%d)\n",
+                       (memSizeType) aFile,
                        aFile == NULL ? "NULL " : "",
                        aFile != NULL ? safe_fileno(aFile->cFile) : 0););
     cFile = aFile->cFile;
@@ -2600,7 +2633,8 @@ striType filWordRead (fileType inFile, charType *terminationChar)
     striType result;
 
   /* filWordRead */
-    logFunction(printf("filWordRead(%s%d, '\\" FMT_U32 ";')\n",
+    logFunction(printf("filWordRead(" FMT_U_MEM " %s%d, '\\"
+                       FMT_U32 ";')\n", (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0,
                        *terminationChar););
@@ -2689,7 +2723,8 @@ striType filWordReadChkCtrlC (fileType inFile, charType *terminationChar)
     striType result;
 
   /* filWordReadChkCtrlC */
-    logFunction(printf("filWordReadChkCtrlC(%s%d, '\\" FMT_U32 ";')\n",
+    logFunction(printf("filWordReadChkCtrlC(" FMT_U_MEM " %s%d, '\\"
+                       FMT_U32 ";')\n", (memSizeType) inFile,
                        inFile == NULL ? "NULL " : "",
                        inFile != NULL ? safe_fileno(inFile->cFile) : 0,
                        *terminationChar););

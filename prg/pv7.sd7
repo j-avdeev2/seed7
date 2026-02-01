@@ -89,7 +89,9 @@ const func boolean: isGraphicFile (in string: filePath) is func
   local
     const set of string: imageMagic is {
         BMP_MAGIC, GIF_MAGIC_87, GIF_MAGIC_89, ICO_MAGIC,
-        JPEG_MAGIC, PBM_ASCII_MAGIC, PBM_BINARY_MAGIC, PGM_ASCII_MAGIC,
+        JPEG_MAGIC, MAGIC_PCX_2_5, MAGIC_PCX_2_8_PALETTE,
+        MAGIC_PCX_2_8, MAGIC_PCX_WINDOWS, MAGIC_PCX_3_0,
+        PBM_ASCII_MAGIC, PBM_BINARY_MAGIC, PGM_ASCII_MAGIC,
         PGM_BINARY_MAGIC, PNG_MAGIC, PPM_ASCII_MAGIC, PPM_BINARY_MAGIC,
         TIFF_MAGIC_LE, TIFF_MAGIC_BE};
     var file: aFile is STD_NULL;
@@ -245,7 +247,7 @@ const proc: main is func
     flushGraphic;
     KEYBOARD := GRAPH_KEYBOARD;
     OUT := STD_CONSOLE;
-    if length(argv(PROGRAM)) >= 1 then
+    if length(argv(PROGRAM)) = 1 then
       fileName := convDosPath(argv(PROGRAM)[1]);
       if fileType(fileName) = FILE_DIR then
         dirPath := fileName &  "/";
@@ -267,6 +269,9 @@ const proc: main is func
         end if;
         findFileWithName(fileList, fileName, index);
       end if;
+    elsif length(argv(PROGRAM)) > 1 then
+      dirPath := "";
+      fileList := argv(PROGRAM);
     else
       dirPath := getcwd & "/";
       fileList := readDir(getcwd);

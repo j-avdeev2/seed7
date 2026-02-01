@@ -1640,7 +1640,8 @@ objectType plt_bstring (listType arguments)
         return raise_exception(SYS_MEM_EXCEPTION);
       } else {
         result->size = plist->size;
-        memcpy(result->mem, plist->mem, plist->size);
+        memcpy_size_0_okay(result->mem, plist->mem,
+                           (size_t) plist->size);
       } /* if */
     } /* if */
     logFunction(printf("plt_bstring --> \"%s\"\n",
@@ -1743,7 +1744,8 @@ objectType plt_create (listType arguments)
       } /* if */
       dest->value.bstriValue = new_plist;
       new_plist->size = new_size;
-      memcpy(new_plist->mem, take_pointlist(source)->mem, new_size);
+      memcpy_size_0_okay(new_plist->mem, take_pointlist(source)->mem,
+                         (size_t) new_size);
     } /* if */
     return SYS_EMPTY_OBJECT;
   } /* plt_create */
@@ -1777,17 +1779,17 @@ objectType plt_destr (listType arguments)
 objectType plt_empty (listType arguments)
 
   {
-    bstriType result;
+    emptyBStriType result;
 
   /* plt_empty */
-    if (unlikely(!ALLOC_BSTRI_SIZE_OK(result, 0))) {
+    if (unlikely(!ALLOC_EMPTY_BSTRI(result))) {
       return raise_exception(SYS_MEM_EXCEPTION);
     } else {
-      /* Note that the size of the allocated memory is smaller than */
-      /* the size of the struct. But this is okay, because the */
-      /* elements 'mem' respectively 'mem1' are not used. */
       result->size = 0;
-      return bld_pointlist_temp(result);
+      /* Note that the size of the allocated memory is smaller than */
+      /* the size of bstriStruct. But this is okay, because the */
+      /* elements 'mem' respectively 'mem1' are not used. */
+      return bld_pointlist_temp((bstriType) result);
     } /* if */
   } /* plt_empty */
 
@@ -1886,7 +1888,8 @@ objectType plt_point_list (listType arguments)
         return raise_exception(SYS_MEM_EXCEPTION);
       } else {
         result->size = bstri->size;
-        memcpy(result->mem, bstri->mem, bstri->size);
+        memcpy_size_0_okay(result->mem, bstri->mem,
+                           (size_t) bstri->size);
       } /* if */
     } /* if */
     logFunction(printf("plt_point_list --> \"%s\"\n",
@@ -1910,6 +1913,7 @@ objectType plt_value (listType arguments)
     bstriType result;
 
   /* plt_value */
+    logFunction(printf("plt_value\n"););
     isit_reference(arg_1(arguments));
     aReference = take_reference(arg_1(arguments));
     if (unlikely(aReference == NULL ||
@@ -1925,7 +1929,9 @@ objectType plt_value (listType arguments)
         return raise_exception(SYS_MEM_EXCEPTION);
       } else {
         result->size = plist->size;
-        memcpy(result->mem, plist->mem, result->size);
+        memcpy_size_0_okay(result->mem, plist->mem,
+                           (size_t) plist->size);
+        logFunction(printf("plt_value -->\n"););
         return bld_pointlist_temp(result);
       } /* if */
     } /* if */

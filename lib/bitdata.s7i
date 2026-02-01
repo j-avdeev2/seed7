@@ -120,6 +120,20 @@ const func integer: reverseBits (in integer: size, in var integer: bits) is func
   end func;
 
 
+const func string: reverseByteBits (in string: stri) is func
+  result
+    var string: reversed is "";
+  local
+    var char: aChar is ' ';
+    var integer: index is 0;
+  begin
+    reversed := "\0;" mult length(stri);
+    for aChar key index range stri do
+      reversed @:= [index] char(reverseBits[8][ord(aChar)]);
+    end for;
+  end func;
+
+
 (**
  *  Type to read bitwise data starting with the least significant bit.
  *  This is used by the Huffman compression (as part of the deflate
@@ -142,10 +156,6 @@ const type: lsbInBitStream is new struct
     var integer: limit is 0;
     var file: inFile is STD_NULL;
   end struct;
-
-
-# The type lsbBitStream is deprecated. Use lsbInBitStream instead.
-const type: lsbBitStream is lsbInBitStream;
 
 
 const proc: show (in lsbInBitStream: inBitStream) is func
@@ -206,11 +216,6 @@ const func lsbInBitStream: openLsbInBitStream (inout file: inFile) is func
   end func;
 
 
-# The function openLsbBitStream(file) is deprecated. Use openLsbInBitStream(file) instead.
-const func lsbInBitStream: openLsbBitStream (inout file: inFile) is
-  return openLsbInBitStream(inFile);
-
-
 (**
  *  Open an LSB bit stream from the string ''stri'' for reading.
  *  In a ''lsbInBitStream'' the read direction is from
@@ -232,11 +237,6 @@ const func lsbInBitStream: openLsbInBitStream (in string: stri) is func
     fillBuffer(inBitStream);
     # show(inBitStream);
   end func;
-
-
-# The function openLsbBitStream(string) is deprecated. Use openLsbInBitStream(string) instead.
-const func lsbInBitStream: openLsbBitStream (in string: stri) is
-  return openLsbInBitStream(stri);
 
 
 (**
@@ -512,10 +512,6 @@ const type: msbInBitStream is new struct
   end struct;
 
 
-# The type msbBitStream is deprecated. Use msbInBitStream instead.
-const type: msbBitStream is msbInBitStream;
-
-
 const proc: show (in msbInBitStream: inBitStream) is func
   begin
     writeln("buffer: " <& inBitStream.buffer radix 2);
@@ -574,11 +570,6 @@ const func msbInBitStream: openMsbInBitStream (inout file: inFile) is func
   end func;
 
 
-# The function openMsbBitStream(file) is deprecated. Use openMsbInBitStream(file) instead.
-const func msbInBitStream: openMsbBitStream (inout file: inFile) is
-  return openMsbInBitStream(inFile);
-
-
 (**
  *  Open an MSB bit stream from the string ''stri'' for reading.
  *  In a ''msbInBitStream'' the read direction is from
@@ -600,11 +591,6 @@ const func msbInBitStream: openMsbInBitStream (in string: stri) is func
     fillBuffer(inBitStream);
     # show(inBitStream);
   end func;
-
-
-# The function openMsbBitStream(string) is deprecated. Use openMsbInBitStream(string) instead.
-const func msbInBitStream: openMsbBitStream (in string: stri) is
-  return openMsbInBitStream(stri);
 
 
 (**
@@ -1044,7 +1030,7 @@ const proc: write (inout lsbOutBitStream: outBitStream, in string: stri) is func
  *  Type to write bitwise data starting with the most significant bit.
  *  In a ''msbOutBitStream'' the write direction is from
  *  MSB (most significant bit) to LSB (least significant bit).
- *  For the bit position in a byte (bitSize) holds: 0 = MSB, 7 = LSB.
+ *  For the bit position in a byte (bitPos) holds: 0 = MSB, 7 = LSB.
  *  The bits are stored in a string of bytes. The byte string can
  *  be obtained with the function getBytes(). The function flush()
  *  can be used to add a partially filled byte to the byte string.
@@ -1053,7 +1039,7 @@ const proc: write (inout lsbOutBitStream: outBitStream, in string: stri) is func
  *)
 const type: msbOutBitStream is new struct
     var integer: buffer is 0;
-    var integer: bitSize is 0;
+    var integer: bitPos is 0;
     var string: byteString is "";
   end struct;
 
@@ -1083,10 +1069,10 @@ const proc: putBit (inout msbOutBitStream: outBitStream, in integer: bit) is fun
   begin
     outBitStream.buffer <<:= 1;
     outBitStream.buffer +:= bit;
-    incr(outBitStream.bitSize);
-    if outBitStream.bitSize = 8 then
+    incr(outBitStream.bitPos);
+    if outBitStream.bitPos = 8 then
       outBitStream.byteString &:= char(outBitStream.buffer);
-      outBitStream.bitSize := 0;
+      outBitStream.bitPos := 0;
       outBitStream.buffer := 0;
     end if;
   end func;
@@ -1101,7 +1087,7 @@ const proc: putBit (inout msbOutBitStream: outBitStream, in integer: bit) is fun
  *   #                        ^
  *   #                     current
  *   #                    position
- *   putBitsMsb(stri, bitPos, 2#10011, 5);
+ *   putBits(aBitStream, 2#10011, 5);
  *   # Stream data:  "\2#01011100;\2#11000000;"  and  bitPos = 2
  *   #                        100    11
  *   #                    appended  appended
@@ -1117,14 +1103,14 @@ const proc: putBits (inout msbOutBitStream: outBitStream, in integer: bits,
   begin
     outBitStream.buffer <<:= bitWidth;
     outBitStream.buffer +:= bits;
-    outBitStream.bitSize +:= bitWidth;
-    if outBitStream.bitSize >= 8 then
-      bitShift := outBitStream.bitSize;
+    outBitStream.bitPos +:= bitWidth;
+    if outBitStream.bitPos >= 8 then
+      bitShift := outBitStream.bitPos;
       repeat
         bitShift -:= 8;
         outBitStream.byteString &:= char((outBitStream.buffer >> bitShift) mod 256);
       until bitShift < 8;
-      outBitStream.bitSize := bitShift;
+      outBitStream.bitPos := bitShift;
       outBitStream.buffer := outBitStream.buffer mod 2 ** bitShift;
     end if;
   end func;
@@ -1140,7 +1126,7 @@ const proc: (inout msbOutBitStream: outBitStream) &:= (in msbOutBitStream: exten
     for ch range extension.byteString do
       putBits(outBitStream, ord(ch), 8);
     end for;
-    putBits(outBitStream, extension.buffer, extension.bitSize);
+    putBits(outBitStream, extension.buffer, extension.bitPos);
   end func;
 
 
@@ -1151,7 +1137,7 @@ const proc: (inout msbOutBitStream: outBitStream) &:= (in msbOutBitStream: exten
  *  @return the length of the bit stream.
  *)
 const func integer: length (in msbOutBitStream: outBitStream) is
-  return length(outBitStream.byteString) * 8 + outBitStream.bitSize;
+  return length(outBitStream.byteString) * 8 + outBitStream.bitPos;
 
 
 (**
@@ -1166,28 +1152,28 @@ const func integer: length (in msbOutBitStream: outBitStream) is
 const proc: truncate (inout msbOutBitStream: outBitStream, in integer: length) is func
   local
     var integer: bytePos is 0;
-    var integer: bitSize is 0;
+    var integer: bitPos is 0;
   begin
     if length < 0 then
       raise RANGE_ERROR;
     else
       bytePos := length mdiv 8;
-      bitSize := length mod 8;
+      bitPos := length mod 8;
       if bytePos < length(outBitStream.byteString) then
-        outBitStream.buffer := ord(outBitStream.byteString[succ(bytePos)]) >> (8 - bitSize);
+        outBitStream.buffer := ord(outBitStream.byteString[succ(bytePos)]) >> (8 - bitPos);
         outBitStream.byteString := outBitStream.byteString[.. bytePos];
       elsif bytePos = length(outBitStream.byteString) then
-        if bitSize < outBitStream.bitSize then
-          outBitStream.buffer >>:= outBitStream.bitSize - bitSize;
-        elsif bitSize > outBitStream.bitSize then
-          outBitStream.buffer <<:= bitSize - outBitStream.bitSize;
+        if bitPos < outBitStream.bitPos then
+          outBitStream.buffer >>:= outBitStream.bitPos - bitPos;
+        elsif bitPos > outBitStream.bitPos then
+          outBitStream.buffer <<:= bitPos - outBitStream.bitPos;
         end if;
       else
-        outBitStream.byteString &:= char(outBitStream.buffer << (8 - outBitStream.bitSize));
+        outBitStream.byteString &:= char(outBitStream.buffer << (8 - outBitStream.bitPos));
         outBitStream.byteString &:= "\0;" mult bytePos - length(outBitStream.byteString);
         outBitStream.buffer := 0;
       end if;
-      outBitStream.bitSize := bitSize;
+      outBitStream.bitPos := bitPos;
     end if;
   end func;
 
@@ -1201,9 +1187,9 @@ const proc: truncate (inout msbOutBitStream: outBitStream, in integer: length) i
  *)
 const proc: flush (inout msbOutBitStream: outBitStream) is func
   begin
-    if outBitStream.bitSize <> 0 then
-      outBitStream.byteString &:= char(outBitStream.buffer << (8 - outBitStream.bitSize));
-      outBitStream.bitSize := 0;
+    if outBitStream.bitPos <> 0 then
+      outBitStream.byteString &:= char(outBitStream.buffer << (8 - outBitStream.bitPos));
+      outBitStream.bitPos := 0;
     end if;
     outBitStream.buffer := 0;
   end func;
@@ -1237,301 +1223,6 @@ const proc: write (inout msbOutBitStream: outBitStream, in string: stri) is func
   begin
     flush(outBitStream);
     outBitStream.byteString &:= stri;
-  end func;
-
-
-# The function putBitLsb(string) is deprecated. Use putBit(lsbOutBitStream) instead.
-const proc: putBitLsb (inout string: stri, inout integer: bitPos, in integer: bit) is func
-  begin
-    if bitPos = 0 then
-      stri &:= char(bit);
-      bitPos := 1;
-    else
-      stri @:= [length(stri)] char(ord(stri[length(stri)]) + (bit << bitPos));
-      bitPos := succ(bitPos) mod 8;
-    end if;
-  end func;
-
-
-# The function putBitsLsb(string) is deprecated. Use putBits(lsbOutBitStream) instead.
-const proc: putBitsLsb (inout string: stri, inout integer: bitPos, in var integer: bits,
-    in var integer: bitWidth) is func
-  local
-    var integer: bitsFree is 0;
-  begin
-    bitsFree := 8 - bitPos;
-    if bitsFree > bitWidth then
-      # |---------8 bits---------|
-      # | |--bitWidth---|-bitPos-|
-      # |---bitsFree----|        |
-      if bitPos = 0 then
-        stri &:= char(bits << bitPos);
-      else
-        stri @:= [length(stri)] char(ord(stri[length(stri)]) + (bits << bitPos));
-      end if;
-      bitPos +:= bitWidth;
-    else
-      #   |---------8 bits---------|
-      # ----bitWidth------|-bitPos-|
-      #   |---bitsFree----|        |
-      if bitPos <> 0 then
-        stri @:= [length(stri)] char(ord(stri[length(stri)]) + ((bits mod (1 << bitsFree)) << bitPos));
-        bits >>:= bitsFree;
-        bitWidth -:= bitsFree;
-      end if;
-      while bitWidth >= 8 do
-        stri &:= char(bits mod 256);
-        bits >>:= 8;
-        bitWidth -:= 8;
-      end while;
-      if bitWidth >= 1 then
-        stri &:= char(bits);
-        bitPos := bitWidth;
-      else
-        bitPos := 0;
-      end if;
-    end if;
-  end func;
-
-
-# The function putBitMsb(string) is deprecated. Use putBit(msbOutBitStream) instead.
-const proc: putBitMsb (inout string: stri, inout integer: bitPos, in integer: bit) is func
-  begin
-    if bitPos = 0 then
-      stri &:= char(bit << 7);
-      bitPos := 1;
-    else
-      stri @:= [length(stri)] char(ord(stri[length(stri)]) + (bit << (7 - bitPos)));
-      bitPos := succ(bitPos) mod 8;
-    end if;
-  end func;
-
-
-# The function putBitsMsb(string) is deprecated. Use putBits(msbOutBitStream) instead.
-const proc: putBitsMsb (inout string: stri, inout integer: bitPos, in var integer: bits,
-    in var integer: bitWidth) is func
-  local
-    var integer: bitsFree is 0;
-  begin
-    bitsFree := 8 - bitPos;
-    if bitsFree > bitWidth then
-      # |---------8 bits---------|
-      # |-bitPos-|--bitWidth---| |
-      # |        |---bitsFree----|
-      if bitPos = 0 then
-        stri &:= char(bits << (bitsFree - bitWidth));
-      else
-        stri @:= [length(stri)] char(ord(stri[length(stri)]) + (bits << (bitsFree - bitWidth)));
-      end if;
-      bitPos +:= bitWidth;
-    else
-      # |---------8 bits---------|
-      # |-bitPos-|----bitWidth------
-      # |        |---bitsFree----|
-      if bitPos <> 0 then
-        bitWidth -:= bitsFree;
-        stri @:= [length(stri)] char(ord(stri[length(stri)]) + (bits >> bitWidth));
-        bits := bits mod (1 << bitWidth);
-      end if;
-      while bitWidth >= 8 do
-        bitWidth -:= 8;
-        stri &:= char(bits >> bitWidth);
-        bits := bits mod (1 << bitWidth);
-      end while;
-      if bitWidth >= 1 then
-        stri &:= char(bits << (8 - bitWidth));
-        bitPos := bitWidth;
-      else
-        bitPos := 0;
-      end if;
-    end if;
-  end func;
-
-
-# The function getBitLsb(file) is deprecated. Use getBit(lsbInBitStream) instead.
-const func integer: getBitLsb (inout file: inFile, inout integer: bitPos) is func
-  result
-    var integer: resultBit is 0;
-  begin
-    if bitPos = 8 then
-      inFile.bufferChar := getc(inFile);
-      resultBit := ord(inFile.bufferChar) mod 2;
-      bitPos := 1;
-    else
-      resultBit := (ord(inFile.bufferChar) >> bitPos) mod 2;
-      incr(bitPos);
-    end if;
-  end func;
-
-
-# The function getBitsLsb(file) is deprecated. Use getBits(lsbInBitStream) instead.
-const func integer: getBitsLsb (inout file: inFile, inout integer: bitPos,
-    in var integer: bitWidth) is func
-  result
-    var integer: resultBits is 0;
-  local
-    var integer: bitsInByte is 0;
-    var integer: bitsInResult is 0;
-  begin
-    if bitPos = 8 then
-      bitPos := 0;
-      inFile.bufferChar := getc(inFile);
-    end if;
-    bitsInByte := 8 - bitPos;
-    if bitsInByte >= bitWidth then
-      resultBits := (ord(inFile.bufferChar) >> bitPos) mod (1 << bitWidth);
-      bitPos +:= bitWidth;
-    else
-      resultBits := ord(inFile.bufferChar) mod 256 >> bitPos;
-      inFile.bufferChar := getc(inFile);
-      bitWidth -:= bitsInByte;
-      bitsInResult := bitsInByte;
-      while bitWidth > 8 do
-        resultBits +:= ord(inFile.bufferChar) << bitsInResult;
-        inFile.bufferChar := getc(inFile);
-        bitWidth -:= 8;
-        bitsInResult +:= 8;
-      end while;
-      resultBits +:= ord(inFile.bufferChar) mod (1 << bitWidth) << bitsInResult;
-      bitPos := bitWidth;
-    end if;
-  end func;
-
-
-# The function putBitLsb(file) is deprecated. Use putBit(lsbOutBitStream) instead.
-const proc: putBitLsb (inout file: outFile, inout integer: bitPos, in integer: bit) is func
-  begin
-    if bitPos = 7 then
-      write(outFile, char(ord(outFile.bufferChar) + (bit << bitPos)));
-      outFile.bufferChar := '\0;';
-      bitPos := 0;
-    else
-      outFile.bufferChar := char(ord(outFile.bufferChar) + (bit << bitPos));
-      incr(bitPos);
-    end if;
-  end func;
-
-
-# The function putBitsLsb(file) is deprecated. Use putBits(lsbOutBitStream) instead.
-const proc: putBitsLsb (inout file: outFile, inout integer: bitPos, in var integer: bits,
-    in var integer: bitWidth) is func
-  local
-    var integer: bitsFree is 0;
-  begin
-    bitsFree := 8 - bitPos;
-    if bitsFree > bitWidth then
-      outFile.bufferChar := char(ord(outFile.bufferChar) + (bits << bitPos));
-      bitPos +:= bitWidth;
-    else
-      write(outFile, char(ord(outFile.bufferChar) + ((bits mod (1 << bitsFree)) << bitPos)));
-      bits >>:= bitsFree;
-      bitWidth -:= bitsFree;
-      while bitWidth >= 8 do
-        write(outFile, char(bits mod 256));
-        bits >>:= 8;
-        bitWidth -:= 8;
-      end while;
-      if bitWidth >= 1 then
-        outFile.bufferChar := char(bits);
-        bitPos := bitWidth;
-      else
-        outFile.bufferChar := '\0;';
-        bitPos := 0;
-      end if;
-    end if;
-  end func;
-
-
-# The function getBitMsb(file) is deprecated. Use getBit(msbInBitStream) instead.
-const func integer: getBitMsb (inout file: inFile, inout integer: bitPos) is func
-  result
-    var integer: resultBit is 0;
-  begin
-    if bitPos = 8 then
-      inFile.bufferChar := getc(inFile);
-      resultBit := (ord(inFile.bufferChar) >> 7) mod 2;
-      bitPos := 1;
-    else
-      resultBit := (ord(inFile.bufferChar) >> (7 - bitPos)) mod 2;
-      incr(bitPos);
-    end if;
-  end func;
-
-
-# The function getBitsMsb(file) is deprecated. Use getBits(msbInBitStream) instead.
-const func integer: getBitsMsb (inout file: inFile, inout integer: bitPos,
-    in var integer: bitWidth) is func
-  result
-    var integer: resultBits is 0;
-  local
-    var integer: bitsInByte is 0;
-  begin
-    if bitPos = 8 then
-      bitPos := 0;
-      inFile.bufferChar := getc(inFile);
-    end if;
-    bitsInByte := 8 - bitPos;
-    if bitsInByte >= bitWidth then
-      resultBits := (ord(inFile.bufferChar) >> (bitsInByte - bitWidth)) mod (1 << bitWidth);
-      bitPos +:= bitWidth;
-    else
-      resultBits := ord(inFile.bufferChar) mod (1 << bitsInByte);
-      inFile.bufferChar := getc(inFile);
-      bitWidth -:= bitsInByte;
-      while bitWidth > 8 do
-        resultBits <<:= 8;
-        resultBits +:= ord(inFile.bufferChar);
-        inFile.bufferChar := getc(inFile);
-        bitWidth -:= 8;
-      end while;
-      resultBits <<:= bitWidth;
-      resultBits +:= (ord(inFile.bufferChar) >> (8 - bitWidth));
-      bitPos := bitWidth;
-    end if;
-  end func;
-
-
-# The function putBitMsb(file) is deprecated. Use putBit(msbOutBitStream) instead.
-const proc: putBitMsb (inout file: outFile, inout integer: bitPos, in integer: bit) is func
-  begin
-    if bitPos = 7 then
-      write(outFile, char(ord(outFile.bufferChar) + bit));
-      outFile.bufferChar := '\0;';
-      bitPos := 0;
-    else
-      outFile.bufferChar := char(ord(outFile.bufferChar) + (bit << (7 - bitPos)));
-      incr(bitPos);
-    end if;
-  end func;
-
-
-# The function putBitsMsb(file) is deprecated. Use putBits(msbOutBitStream) instead.
-const proc: putBitsMsb (inout file: outFile, inout integer: bitPos, in var integer: bits,
-    in var integer: bitWidth) is func
-  local
-    var integer: bitsFree is 0;
-  begin
-    bitsFree := 8 - bitPos;
-    if bitsFree > bitWidth then
-      outFile.bufferChar := char(ord(outFile.bufferChar) + (bits << (bitsFree - bitWidth)));
-      bitPos +:= bitWidth;
-    else
-      bitWidth -:= bitsFree;
-      write(outFile, char(ord(outFile.bufferChar) + (bits >> bitWidth)));
-      bits := bits mod (1 << bitWidth);
-      while bitWidth >= 8 do
-        bitWidth -:= 8;
-        write(outFile, char(bits >> bitWidth));
-        bits := bits mod (1 << bitWidth);
-      end while;
-      if bitWidth >= 1 then
-        outFile.bufferChar := char(bits << (8 - bitWidth));
-        bitPos := bitWidth;
-      else
-        outFile.bufferChar := '\0;';
-        bitPos := 0;
-      end if;
-    end if;
   end func;
 
 

@@ -26,6 +26,7 @@ $ include "seed7_05.s7i";
   include "bigint.s7i";
   include "float.s7i";
   include "complex.s7i";
+  include "strifile.s7i";
 
 
 const array integer: testNumArr is [] (1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -2170,8 +2171,12 @@ const func boolean: testFixArrayIndex is func
         anArray2[ 5] <>  5 or
         anArray2[15] <> 15 or
         anArray3[-2147483647] <> -2147483647 or
-        anArray3[-2147483646] <> -2147483646 or
-        anArray[intExpr( 1)] <>  1 or
+        anArray3[-2147483646] <> -2147483646 then
+      writeln(" ***** Indexing into a fixed size array failed. (1)");
+      okay := FALSE;
+    end if;
+
+    if  anArray[intExpr( 1)] <>  1 or
         anArray[intExpr(12)] <> 12 or
         anArray[intExpr(64)] <> 64 or
         anArray2[intExpr( 0)] <>  0 or
@@ -2186,8 +2191,12 @@ const func boolean: testFixArrayIndex is func
         anArray2[intExpr( 5) mod 16] <>  5 or
         anArray2[intExpr(15) mod 16] <> 15 or
         anArray3[intExpr(0) mod 8 - 2147483647] <> -2147483647 or
-        anArray3[intExpr(1) mod 8 - 2147483647] <> -2147483646 or
-        anArray[ abs(intExpr( 0)) +  1] <>  1 or
+        anArray3[intExpr(1) mod 8 - 2147483647] <> -2147483646 then
+      writeln(" ***** Indexing into a fixed size array failed. (2)");
+      okay := FALSE;
+    end if;
+
+    if  anArray[ abs(intExpr( 0)) +  1] <>  1 or
         anArray[ abs(intExpr(11)) +  1] <> 12 or
         anArray[ abs(intExpr(63)) +  1] <> 64 or
         anArray[-abs(intExpr(63)) + 64] <>  1 or
@@ -2203,7 +2212,7 @@ const func boolean: testFixArrayIndex is func
         anArray3[ abs(intExpr(1)) - 2147483647] <> -2147483646 or
         anArray3[-abs(intExpr(1)) - 2147483646] <> -2147483647 or
         anArray3[-abs(intExpr(0)) - 2147483646] <> -2147483646 then
-      writeln(" ***** Indexing into a fixed size array failed.");
+      writeln(" ***** Indexing into a fixed size array failed. (3)");
       okay := FALSE;
     end if;
 
@@ -2249,6 +2258,9 @@ const func boolean: testBaseArrayIndex is func
     var baseArrayType: anArray is baseArrayType [.. 12] times 0;
     var baseArrayType2: anArray2 is baseArrayType2 [.. 5] times 0;
     var baseArrayType3: anArray3 is baseArrayType3 [.. -2147483646] times 0;
+    var baseArrayType: anArrayEmpty is baseArrayType.value;
+    var baseArrayType2: anArray2Empty is baseArrayType2.value;
+    var baseArrayType3: anArray3Empty is baseArrayType3.value;
   begin
     anArray[1]  :=  1;
     anArray[12] := 12;
@@ -2314,7 +2326,115 @@ const func boolean: testBaseArrayIndex is func
         not raisesIndexError(anArray2[-abs(intExpr(6)) + 5]) or
         not raisesIndexError(anArray3[ abs(intExpr(2)) - 2147483647]) or
         not raisesIndexError(anArray3[-abs(intExpr(2)) - 2147483646]) then
-      writeln(" ***** Indexing into a fixed fixed minimum index array does not raise INDEX_ERROR.");
+      writeln(" ***** Indexing into a fixed fixed minimum index array does not raise INDEX_ERROR. (1)");
+      okay := FALSE;
+    end if;
+
+    if  not raisesIndexError(anArrayEmpty[integer.first]) or
+        not raisesIndexError(anArrayEmpty[-2147483648]) or
+        not raisesIndexError(anArrayEmpty[-2147483647]) or
+        not raisesIndexError(anArrayEmpty[-1]) or
+        not raisesIndexError(anArrayEmpty[0]) or
+        not raisesIndexError(anArrayEmpty[1]) or
+        not raisesIndexError(anArrayEmpty[2147483646]) or
+        not raisesIndexError(anArrayEmpty[2147483647]) or
+        not raisesIndexError(anArrayEmpty[integer.last]) or
+        not raisesIndexError(anArray2Empty[integer.first]) or
+        not raisesIndexError(anArray2Empty[-2147483648]) or
+        not raisesIndexError(anArray2Empty[-2147483647]) or
+        not raisesIndexError(anArray2Empty[-1]) or
+        not raisesIndexError(anArray2Empty[0]) or
+        not raisesIndexError(anArray2Empty[1]) or
+        not raisesIndexError(anArray2Empty[2147483646]) or
+        not raisesIndexError(anArray2Empty[2147483647]) or
+        not raisesIndexError(anArray2Empty[integer.last]) or
+        not raisesIndexError(anArray3Empty[integer.first]) or
+        not raisesIndexError(anArray3Empty[-2147483648]) or
+        not raisesIndexError(anArray3Empty[-2147483647]) or
+        not raisesIndexError(anArray3Empty[-1]) or
+        not raisesIndexError(anArray3Empty[0]) or
+        not raisesIndexError(anArray3Empty[1]) or
+        not raisesIndexError(anArray3Empty[2147483646]) or
+        not raisesIndexError(anArray3Empty[2147483647]) or
+        not raisesIndexError(anArray3Empty[integer.last]) then
+      writeln(" ***** Indexing into a fixed fixed minimum index array does not raise INDEX_ERROR. (2)");
+      okay := FALSE;
+    end if;
+
+    if  not raisesIndexError(anArrayEmpty[intExpr(integer.first)]) or
+        not raisesIndexError(anArrayEmpty[intExpr(-2147483648)]) or
+        not raisesIndexError(anArrayEmpty[intExpr(-2147483647)]) or
+        not raisesIndexError(anArrayEmpty[intExpr(-1)]) or
+        not raisesIndexError(anArrayEmpty[intExpr(0)]) or
+        not raisesIndexError(anArrayEmpty[intExpr(1)]) or
+        not raisesIndexError(anArrayEmpty[intExpr(2147483646)]) or
+        not raisesIndexError(anArrayEmpty[intExpr(2147483647)]) or
+        not raisesIndexError(anArrayEmpty[intExpr(integer.last)]) or
+        not raisesIndexError(anArray2Empty[intExpr(integer.first)]) or
+        not raisesIndexError(anArray2Empty[intExpr(-2147483648)]) or
+        not raisesIndexError(anArray2Empty[intExpr(-2147483647)]) or
+        not raisesIndexError(anArray2Empty[intExpr(-1)]) or
+        not raisesIndexError(anArray2Empty[intExpr(0)]) or
+        not raisesIndexError(anArray2Empty[intExpr(1)]) or
+        not raisesIndexError(anArray2Empty[intExpr(2147483646)]) or
+        not raisesIndexError(anArray2Empty[intExpr(2147483647)]) or
+        not raisesIndexError(anArray2Empty[intExpr(integer.last)]) or
+        not raisesIndexError(anArray3Empty[intExpr(integer.first)]) or
+        not raisesIndexError(anArray3Empty[intExpr(-2147483648)]) or
+        not raisesIndexError(anArray3Empty[intExpr(-2147483647)]) or
+        not raisesIndexError(anArray3Empty[intExpr(-1)]) or
+        not raisesIndexError(anArray3Empty[intExpr(0)]) or
+        not raisesIndexError(anArray3Empty[intExpr(1)]) or
+        not raisesIndexError(anArray3Empty[intExpr(2147483646)]) or
+        not raisesIndexError(anArray3Empty[intExpr(2147483647)]) or
+        not raisesIndexError(anArray3Empty[intExpr(integer.last)]) then
+      writeln(" ***** Indexing into a fixed fixed minimum index array does not raise INDEX_ERROR. (3)");
+      okay := FALSE;
+    end if;
+  end func;
+
+
+const type: fileArrayType is array file;
+
+
+const func fileArrayType: returnFileArray is
+  return [] (openStriFile("abcde"), openStriFile("fghij"), openStriFile("klmno"));
+
+
+const func boolean: testFileArray is func
+  result
+    var boolean: okay is TRUE;
+  local
+    var file: aFile is STD_NULL;
+  begin
+    aFile := returnFileArray[1];
+    if gets(aFile, integer.last) <> "abcde" then
+      writeln(" ***** Indexing into an array of files does not work correctly. (1)");
+      okay := FALSE;
+    end if;
+    aFile := returnFileArray[2];
+    if gets(aFile, integer.last) <> "fghij" then
+      writeln(" ***** Indexing into an array of files does not work correctly. (2)");
+      okay := FALSE;
+    end if;
+    aFile := returnFileArray[3];
+    if gets(aFile, integer.last) <> "klmno" then
+      writeln(" ***** Indexing into an array of files does not work correctly. (3)");
+      okay := FALSE;
+    end if;
+    aFile := returnFileArray[intExpr(1)];
+    if gets(aFile, integer.last) <> "abcde" then
+      writeln(" ***** Indexing into an array of files does not work correctly. (4)");
+      okay := FALSE;
+    end if;
+    aFile := returnFileArray[intExpr(2)];
+    if gets(aFile, integer.last) <> "fghij" then
+      writeln(" ***** Indexing into an array of files does not work correctly. (5)");
+      okay := FALSE;
+    end if;
+    aFile := returnFileArray[intExpr(3)];
+    if gets(aFile, integer.last) <> "klmno" then
+      writeln(" ***** Indexing into an array of files does not work correctly. (6)");
       okay := FALSE;
     end if;
   end func;
@@ -2407,6 +2527,11 @@ const proc: testIndex is func
       writeln(" ***** ARRAY [ INDEX ] for boolean array failed. (8)");
       okay := FALSE;
     end if;
+    blnElem := (blnArr & blnArr)[intExpr(8)];
+    if blnElem <> TRUE then
+      writeln(" ***** ARRAY [ INDEX ] for boolean array failed. (9)");
+      okay := FALSE;
+    end if;
 
     if length(intArr) <> 7 or intArr[1] <> 1 or intArr[2] <> 2 or intArr[3] <> 3 or
             intArr[4] <> 4 or intArr[5] <> 5 or intArr[6] <> 6 or intArr[7] <> 7 then
@@ -2446,6 +2571,11 @@ const proc: testIndex is func
     intElem := (intArr & intArr)[8];
     if intElem <> 1 then
       writeln(" ***** ARRAY [ INDEX ] for integer array failed. (8)");
+      okay := FALSE;
+    end if;
+    intElem := (intArr & intArr)[intExpr(8)];
+    if intElem <> 1 then
+      writeln(" ***** ARRAY [ INDEX ] for integer array failed. (9)");
       okay := FALSE;
     end if;
 
@@ -2489,6 +2619,11 @@ const proc: testIndex is func
       writeln(" ***** ARRAY [ INDEX ] for bigInteger array failed. (8)");
       okay := FALSE;
     end if;
+    bigElem := (bigArr & bigArr)[intExpr(8)];
+    if bigElem <> 1_ then
+      writeln(" ***** ARRAY [ INDEX ] for bigInteger array failed. (9)");
+      okay := FALSE;
+    end if;
 
     if length(fltArr) <> 7 or fltArr[1] <> 1.0 or fltArr[2] <> 2.0 or fltArr[3] <> 3.0 or
           fltArr[4] <> 4.0 or fltArr[5] <> 5.0 or fltArr[6] <> 6.0 or fltArr[7] <> 7.0 then
@@ -2528,6 +2663,11 @@ const proc: testIndex is func
     fltElem := (fltArr & fltArr)[8];
     if fltElem <> 1.0 then
       writeln(" ***** ARRAY [ INDEX ] for float array failed. (8)");
+      okay := FALSE;
+    end if;
+    fltElem := (fltArr & fltArr)[intExpr(8)];
+    if fltElem <> 1.0 then
+      writeln(" ***** ARRAY [ INDEX ] for float array failed. (9)");
       okay := FALSE;
     end if;
 
@@ -2573,6 +2713,11 @@ const proc: testIndex is func
       writeln(" ***** ARRAY [ INDEX ] for complex array failed. (8)");
       okay := FALSE;
     end if;
+    cpxElem := (cpxArr & cpxArr)[intExpr(8)];
+    if cpxElem <> complex(1.0, 1.0) then
+      writeln(" ***** ARRAY [ INDEX ] for complex array failed. (9)");
+      okay := FALSE;
+    end if;
 
     if length(chrArr) <> 7 or chrArr[1] <> 'a' or chrArr[2] <> 'b' or chrArr[3] <> 'c' or
           chrArr[4] <> 'd' or chrArr[5] <> 'e' or chrArr[6] <> 'f' or chrArr[7] <> 'g' then
@@ -2612,6 +2757,11 @@ const proc: testIndex is func
     chrElem := (chrArr & chrArr)[8];
     if chrElem <> 'a' then
       writeln(" ***** ARRAY [ INDEX ] for char array failed. (8)");
+      okay := FALSE;
+    end if;
+    chrElem := (chrArr & chrArr)[intExpr(8)];
+    if chrElem <> 'a' then
+      writeln(" ***** ARRAY [ INDEX ] for char array failed. (9)");
       okay := FALSE;
     end if;
 
@@ -2656,6 +2806,11 @@ const proc: testIndex is func
       writeln(" ***** ARRAY [ INDEX ] for string array failed. (8)");
       okay := FALSE;
     end if;
+    strElem := (strArr & strArr)[intExpr(8)];
+    if strElem <> "one" then
+      writeln(" ***** ARRAY [ INDEX ] for string array failed. (9)");
+      okay := FALSE;
+    end if;
 
     if length(setArr) <> 7 or setArr[1] <> {1} or setArr[2] <> {2} or setArr[3] <> {3} or
                               setArr[4] <> {4} or setArr[5] <> {5} or setArr[6] <> {6} or
@@ -2698,6 +2853,11 @@ const proc: testIndex is func
       writeln(" ***** ARRAY [ INDEX ] for bitset array failed. (8)");
       okay := FALSE;
     end if;
+    setElem := (setArr & setArr)[intExpr(8)];
+    if setElem <> {1} then
+      writeln(" ***** ARRAY [ INDEX ] for bitset array failed. (9)");
+      okay := FALSE;
+    end if;
 
     if not testIndex([] (blnArr), [] (intArr), [] (bigArr), [] (fltArr),
                      [] (cpxArr), [] (chrArr), [] (strArr), [] (setArr)) then
@@ -2708,6 +2868,9 @@ const proc: testIndex is func
       okay := FALSE;
     end if;
     if not testBaseArrayIndex then
+      okay := FALSE;
+    end if;
+    if not testFileArray then
       okay := FALSE;
     end if;
 

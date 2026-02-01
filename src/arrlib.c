@@ -225,6 +225,9 @@ objectType arr_append (listType arguments)
     isit_array(arg_3(arguments));
     extension = take_array(arg_3(arguments));
     extension_size = arraySize(extension);
+    logFunction(printf("arr_append(arr1 (size=" FMT_U_MEM
+                       "), extension (size=" FMT_U_MEM "))\n",
+                       arraySize(arr_to), extension_size););
     if (extension_size != 0) {
       arr_to_size = arraySize(arr_to);
       if (unlikely(arr_to_size > MAX_ARR_LEN - extension_size ||
@@ -508,13 +511,15 @@ objectType arr_cat (listType arguments)
     arrayType result;
 
   /* arr_cat */
-    logFunction(printf("arr_cat\n"););
     isit_array(arg_1(arguments));
     isit_array(arg_3(arguments));
     arr1 = take_array(arg_1(arguments));
     arr2 = take_array(arg_3(arguments));
     arr1_size = arraySize(arr1);
     arr2_size = arraySize(arr2);
+    logFunction(printf("arr_cat(arr1 (size=" FMT_U_MEM
+                       "), arr2 (size=" FMT_U_MEM "))\n",
+                       arr1_size, arr2_size););
     if (unlikely(arr1_size > MAX_ARR_LEN - arr2_size ||
                  arr1->max_position > (intType) (MAX_MEM_INDEX - arr2_size))) {
       logError(printf("arr_cat: Result size bigger than MAX_ARR_LEN.\n"););
@@ -986,13 +991,16 @@ objectType arr_head (listType arguments)
                       arr1_size, stop););
       return raise_exception(SYS_RNG_EXCEPTION);
     } else {
-      if (unlikely(!ALLOC_ARRAY(result, 0))) {
-        logError(printf("arr_head: ALLOC_ARRAY() failed.\n"););
+      emptyArrayType emptyArray;
+
+      if (unlikely(!ALLOC_EMPTY_ARRAY(emptyArray))) {
+        logError(printf("arr_head: ALLOC_EMPTY_ARRAY() failed.\n"););
         return raise_exception(SYS_MEM_EXCEPTION);
       } else {
-        result->min_position = arr1->min_position;
-        result->max_position = arr1->min_position - 1;
+        emptyArray->min_position = arr1->min_position;
+        emptyArray->max_position = arr1->min_position - 1;
       } /* if */
+      result = (arrayType) emptyArray;
     } /* if */
     logFunction(printf("arr_head -->\n"););
     return bld_array_temp(result);
@@ -1481,13 +1489,16 @@ objectType arr_range (listType arguments)
                       arr1_size, start, stop););
       return raise_exception(SYS_RNG_EXCEPTION);
     } else {
-      if (unlikely(!ALLOC_ARRAY(result, 0))) {
-        logError(printf("arr_range: ALLOC_ARRAY() failed.\n"););
+      emptyArrayType emptyArray;
+
+      if (unlikely(!ALLOC_EMPTY_ARRAY(emptyArray))) {
+        logError(printf("arr_range: ALLOC_EMPTY_ARRAY() failed.\n"););
         return raise_exception(SYS_MEM_EXCEPTION);
       } else {
-        result->min_position = arr1->min_position;
-        result->max_position = arr1->min_position - 1;
+        emptyArray->min_position = arr1->min_position;
+        emptyArray->max_position = arr1->min_position - 1;
       } /* if */
+      result = (arrayType) emptyArray;
     } /* if */
     return bld_array_temp(result);
   } /* arr_range */
@@ -1764,6 +1775,8 @@ objectType arr_subarr (listType arguments)
     arr1 = take_array(arg_1(arguments));
     start = take_int(arg_3(arguments));
     length = take_int(arg_5(arguments));
+    logFunction(printf("arr_subarr(arr1, " FMT_D ", " FMT_D ")\n",
+                       start, length););
     if (unlikely(start < arr1->min_position || length < 0)) {
       logError(printf("arr_subarr(arr1, " FMT_D ", " FMT_D "): "
                       "Start index out of range (" FMT_D " .. " FMT_D ").\n",
@@ -1810,15 +1823,19 @@ objectType arr_subarr (listType arguments)
                         arr1_size, start, length););
         return raise_exception(SYS_RNG_EXCEPTION);
       } else {
-        if (unlikely(!ALLOC_ARRAY(result, 0))) {
-          logError(printf("arr_subarr: ALLOC_ARRAY() failed.\n"););
+        emptyArrayType emptyArray;
+
+        if (unlikely(!ALLOC_EMPTY_ARRAY(emptyArray))) {
+          logError(printf("arr_subarr: ALLOC_EMPTY_ARRAY() failed.\n"););
           return raise_exception(SYS_MEM_EXCEPTION);
         } else {
-          result->min_position = arr1->min_position;
-          result->max_position = arr1->min_position - 1;
+          emptyArray->min_position = arr1->min_position;
+          emptyArray->max_position = arr1->min_position - 1;
         } /* if */
+        result = (arrayType) emptyArray;
       } /* if */
     } /* if */
+    logFunction(printf("arr_subarr -->\n"););
     return bld_array_temp(result);
   } /* arr_subarr */
 
@@ -1845,6 +1862,7 @@ objectType arr_tail (listType arguments)
     isit_int(arg_3(arguments));
     arr1 = take_array(arg_1(arguments));
     start = take_int(arg_3(arguments));
+    logFunction(printf("arr_tail(arr1, " FMT_D ")\n", start););
     arr1_size = arraySize(arr1);
     if (unlikely(start < arr1->min_position)) {
       logError(printf("arr_tail(arr1, " FMT_D "): "
@@ -1886,14 +1904,18 @@ objectType arr_tail (listType arguments)
                       arr1_size, start););
       return raise_exception(SYS_RNG_EXCEPTION);
     } else {
-      if (unlikely(!ALLOC_ARRAY(result, 0))) {
-        logError(printf("arr_tail: ALLOC_ARRAY() failed.\n"););
+      emptyArrayType emptyArray;
+
+      if (unlikely(!ALLOC_EMPTY_ARRAY(emptyArray))) {
+        logError(printf("arr_tail: ALLOC_EMPTY_ARRAY() failed.\n"););
         return raise_exception(SYS_MEM_EXCEPTION);
       } else {
-        result->min_position = arr1->min_position;
-        result->max_position = arr1->min_position - 1;
+        emptyArray->min_position = arr1->min_position;
+        emptyArray->max_position = arr1->min_position - 1;
       } /* if */
+      result = (arrayType) emptyArray;
     } /* if */
+    logFunction(printf("arr_tail -->\n"););
     return bld_array_temp(result);
   } /* arr_tail */
 
@@ -1920,6 +1942,7 @@ objectType arr_times (listType arguments)
   /* arr_times */
     isit_int(arg_1(arguments));
     factor = take_int(arg_1(arguments));
+    logFunction(printf("arr_times(" FMT_D ", ...)\n", factor););
     element = arg_3(arguments);
     if (unlikely(factor < 0)) {
       logError(printf("arr_times(" FMT_D ", ...): Factor negative.\n",
@@ -1978,6 +2001,7 @@ objectType arr_times (listType arguments)
             } /* if */
           } /* for */
         } /* if */
+        logFunction(printf("arr_times -->\n"););
         return bld_array_temp(result);
       } /* if */
     } /* if */

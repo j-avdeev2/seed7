@@ -261,12 +261,18 @@ objectType prg_error_count (listType arguments)
 objectType prg_eval (listType arguments)
 
   {
+    objectType prog_exec_object;
     errInfoType err_info = OKAY_NO_ERROR;
     objectType result;
 
   /* prg_eval */
     isit_prog(arg_1(arguments));
     isit_reference(arg_2(arguments));
+    prog_exec_object = curr_exec_object;
+    logFunction(printf("prg_eval(%s, ", striAsUnquotedCStri(
+                       take_prog(arg_1(arguments))->program_name));
+                trace1(take_reference(arg_2(arguments)));
+                printf(")\n"););
     result = exec_expr(take_prog(arg_1(arguments)),
                        take_reference(arg_2(arguments)),
                        &err_info);
@@ -274,8 +280,13 @@ objectType prg_eval (listType arguments)
       /* The global variable curr_argument_list does not contain */
       /* the arguments of this function. Therefore the parameter */
       /* arguments is used instead.                              */
-      return raise_with_arguments(prog->sys_var[err_info], arguments);
+      logError(printf("prg_eval triggered %d\n", err_info););
+      return raise_with_obj_and_args(prog->sys_var[err_info],
+                                     prog_exec_object, arguments);
     } else {
+      logFunction(printf("prg_eval --> ");
+                  trace1(result);
+                  printf("\n"););
       return bld_reference_temp(result);
     } /* if */
   } /* prg_eval */

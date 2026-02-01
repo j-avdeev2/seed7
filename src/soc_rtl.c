@@ -562,7 +562,6 @@ intType socAddrFamily (const const_bstriType address)
     } else {
       addr = (const struct sockaddr *) address->mem;
       result = addr->sa_family;
-      /* printf("socAddrFamily --> %d\n", result); */
     } /* if */
     logFunction(printf("socAddrFamily(\"%s\") --> " FMT_D "\n",
                        socAddressCStri(address), result););
@@ -855,11 +854,14 @@ striType socGets (socketType inSocket, intType length, charType *const eofIndica
         raise_error(RANGE_ERROR);
         result = NULL;
       } else {
-        if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+        emptyStriType emptyStri;
+
+        if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
           raise_error(MEMORY_ERROR);
         } else {
-          result->size = 0;
+          emptyStri->size = 0;
         } /* if */
+        result = (striType) emptyStri;
       } /* if */
     } else {
       if ((uintType) length > MAX_MEMSIZETYPE) {
@@ -1193,13 +1195,16 @@ bstriType socInetAddr (const const_striType hostName, intType port)
               || getaddrinfo_result == EAI_NODATA
 #endif
           ) {
+            emptyBStriType emptyBStri;
+
             free_cstri8(os_hostName, hostName);
             /* Return empty address */
-            if (unlikely(!ALLOC_BSTRI_SIZE_OK(result, 0))) {
+            if (unlikely(!ALLOC_EMPTY_BSTRI(emptyBStri))) {
               raise_error(MEMORY_ERROR);
             } else {
-              result->size = 0;
+              emptyBStri->size = 0;
             } /* if */
+            result = (bstriType) emptyBStri;
           } else {
             logError(printf("socInetAddr(\"%s\", " FMT_D "): "
                             "getaddrinfo(\"%s\", \"%s\", *, *) failed with %d:\n"
@@ -1253,16 +1258,19 @@ bstriType socInetAddr (const const_striType hostName, intType port)
           host_ent = gethostbyname(os_hostName);
         } /* if */
         if (unlikely(host_ent == NULL)) {
+          emptyBStriType emptyBStri;
+
           /* printf("***** gethostbyname(\"%s\"): h_errno=%d\n", os_hostName, h_errno);
              printf("HOST_NOT_FOUND=%d  NO_DATA=%d  NO_RECOVERY=%d  TRY_AGAIN=%d\n",
                  HOST_NOT_FOUND, NO_DATA, NO_RECOVERY, TRY_AGAIN); */
           free_cstri8(os_hostName, hostName);
           /* Return empty address */
-          if (unlikely(!ALLOC_BSTRI_SIZE_OK(result, 0))) {
+          if (unlikely(!ALLOC_EMPTY_BSTRI(emptyBStri))) {
             raise_error(MEMORY_ERROR);
           } else {
-            result->size = 0;
+            emptyBStri->size = 0;
           } /* if */
+          result = (bstriType) emptyBStri;
         } else {
           /*
           printf("Host name:      %s\n", host_ent->h_name);
@@ -1296,15 +1304,18 @@ bstriType socInetAddr (const const_striType hostName, intType port)
               } */
             } /* if */
           } else {
+            emptyBStriType emptyBStri;
+
             /* printf("socInetAddr: addrtype=%d\n", host_ent->h_addrtype); */
             /* raise_error(FILE_ERROR);
                result = NULL; */
             /* Return empty address */
-            if (unlikely(!ALLOC_BSTRI_SIZE_OK(result, 0))) {
+            if (unlikely(!ALLOC_EMPTY_BSTRI(emptyBStri))) {
               raise_error(MEMORY_ERROR);
             } else {
-              result->size = 0;
+              emptyBStri->size = 0;
             } /* if */
+            result = (bstriType) emptyBStri;
           } /* if */
         } /* if */
 #endif
@@ -1685,13 +1696,15 @@ striType socLineRead (socketType inSocket, charType *const terminationChar)
         bytes_received = 0;
       } /* if */
       if (bytes_received == 0) {
-        if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+        emptyStriType emptyStri;
+
+        if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
           raise_error(MEMORY_ERROR);
-          result = NULL;
         } else {
-          result->size = 0;
+          emptyStri->size = 0;
           *terminationChar = (charType) EOF;
         } /* if */
+        result = (striType) emptyStri;
       } else {
         nlPos = (ucharType *) memchr(buffer, '\n', bytes_received);
         if (nlPos != NULL) {
@@ -2160,7 +2173,6 @@ socketType socSocket (intType domain, intType type, intType protocol)
       raise_error(RANGE_ERROR);
       result = 0;
     } else {
-      /* printf("socSocket(%d, %d, %d)\n", domain, type, protocol); */
       check_initialization((socketType) -1);
       result = (os_socketType) socket((int) domain, (int) type, (int) protocol);
 #if SOCKET_LIB == WINSOCK_SOCKETS && !TWOS_COMPLEMENT_INTTYPE

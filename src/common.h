@@ -53,6 +53,12 @@ typedef BOOLTYPE boolType;
 
 #define EXTERN          extern
 
+#if MEMCPY_ZERO_BYTES_DOES_NOTHING
+#define memcpy_size_0_okay(dest, source, size) memcpy(dest, source, size)
+#else
+#define memcpy_size_0_okay(dest, source, size) if ((size) != 0) {memcpy(dest, source, size);}
+#endif
+
 
 typedef INT8TYPE           int8Type;
 typedef UINT8TYPE          uint8Type;
@@ -685,6 +691,15 @@ typedef struct striStruct {
 #endif
   } striRecord;
 
+typedef struct emptyStriStruct *emptyStriType;
+
+typedef struct emptyStriStruct {
+    memSizeType size;
+#if WITH_STRI_CAPACITY
+    memSizeType capacity;
+#endif
+  } emptyStriRecord;
+
 typedef struct bstriStruct {
     memSizeType size;
 #if ALLOW_BSTRITYPE_SLICES
@@ -694,6 +709,12 @@ typedef struct bstriStruct {
     ucharType mem[1];
 #endif
   } bstriRecord;
+
+typedef struct emptyBStriStruct *emptyBStriType;
+
+typedef struct emptyBStriStruct {
+    memSizeType size;
+  } emptyBStriRecord;
 
 typedef struct fileStruct {
     cFileType cFile;

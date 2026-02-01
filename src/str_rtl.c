@@ -1518,6 +1518,66 @@ void strAppendN (striType *const destination,
 
 
 
+/**
+ *  Append the string 'extension' to 'destination'.
+ *  This function assumes that 'destination' and 'extension' do not
+ *  overlap. It is not possible that 'extension' is identical to
+ *  'destination' or a slice of it.
+ *  @exception MEMORY_ERROR Not enough memory for the concatenated
+ *             string.
+ */
+void strAppendNoOverlap (striType *const destination,
+    const const_striType extension)
+
+  {
+    memSizeType new_size;
+    striType stri_dest;
+    striType new_stri;
+    memSizeType extension_size;
+
+  /* strAppendNoOverlap */
+    logFunction(printf("strAppendNoOverlap(\"%s\", ",
+                       striAsUnquotedCStri(*destination));
+                printf("\"%s\")", striAsUnquotedCStri(extension));
+                fflush(stdout););
+    stri_dest = *destination;
+    extension_size = extension->size;
+    if (unlikely(stri_dest->size > MAX_STRI_LEN - extension_size)) {
+      /* number of bytes does not fit into memSizeType */
+      raise_error(MEMORY_ERROR);
+    } else {
+      new_size = stri_dest->size + extension_size;
+#if WITH_STRI_CAPACITY
+      if (new_size > stri_dest->capacity) {
+        new_stri = growStri(stri_dest, new_size);
+        if (unlikely(new_stri == NULL)) {
+          raise_error(MEMORY_ERROR);
+          return;
+        } else {
+          stri_dest = new_stri;
+          *destination = stri_dest;
+        } /* if */
+      } /* if */
+      memcpy(&stri_dest->mem[stri_dest->size], extension->mem,
+             extension_size * sizeof(strElemType));
+      stri_dest->size = new_size;
+#else
+      GROW_STRI(new_stri, stri_dest, new_size);
+      if (unlikely(new_stri == NULL)) {
+        raise_error(MEMORY_ERROR);
+      } else {
+        memcpy(&new_stri->mem[new_stri->size], extension->mem,
+               extension_size * sizeof(strElemType));
+        new_stri->size = new_size;
+        *destination = new_stri;
+      } /* if */
+#endif
+    } /* if */
+    logFunctionResult(printf("\"%s\"\n", striAsUnquotedCStri(*destination)););
+  } /* strAppendNoOverlap */
+
+
+
 void strAppendChMult (striType *const destination, const charType ch,
     const intType factor)
 
@@ -2210,12 +2270,13 @@ striType strConcatChar (const const_striType stri1, const charType aChar)
     logFunction(printf("strConcatChar(\"%s\", '\\" FMT_U32 ";')",
                        striAsUnquotedCStri(stri1), aChar);
                 fflush(stdout););
-    if (unlikely(stri1->size > MAX_STRI_LEN - 1)) {
+    /* Incrementing a string size cannot overflow. */
+    result_size = stri1->size + 1;
+    if (unlikely(result_size > MAX_STRI_LEN)) {
       /* number of bytes does not fit into memSizeType */
       raise_error(MEMORY_ERROR);
       result = NULL;
     } else {
-      result_size = stri1->size + 1;
       if (unlikely(!ALLOC_STRI_SIZE_OK(result, result_size))) {
         raise_error(MEMORY_ERROR);
       } else {
@@ -2248,13 +2309,14 @@ striType strConcatCharTemp (striType stri1, const charType aChar)
     logFunction(printf("strConcatCharTemp(\"%s\", '\\" FMT_U32 ";')",
                        striAsUnquotedCStri(stri1), aChar);
                 fflush(stdout););
-    if (unlikely(stri1->size > MAX_STRI_LEN - 1)) {
+    /* Incrementing a string size cannot overflow. */
+    result_size = stri1->size + 1;
+    if (unlikely(result_size > MAX_STRI_LEN)) {
       /* number of bytes does not fit into memSizeType */
       FREE_STRI(stri1);
       raise_error(MEMORY_ERROR);
       stri1 = NULL;
     } else {
-      result_size = stri1->size + 1;
 #if WITH_STRI_CAPACITY
       if (result_size > stri1->capacity) {
         resized_stri1 = growStri(stri1, result_size);
@@ -2572,18 +2634,18 @@ void strDestrGeneric (const genericType old_value)
 striType strEmpty (void)
 
   {
-    striType result;
+    emptyStriType result;
 
   /* strEmpty */
     logFunction(printf("strEmpty()");
                 fflush(stdout););
-    if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+    if (unlikely(!ALLOC_EMPTY_STRI(result))) {
       raise_error(MEMORY_ERROR);
     } else {
       result->size = 0;
     } /* if */
-    logFunctionResult(printf("\"%s\"\n", striAsUnquotedCStri(result)););
-    return result;
+    logFunctionResult(printf("\"%s\"\n", striAsUnquotedCStri((striType) result)););
+    return (striType) result;
   } /* strEmpty */
 
 
@@ -2778,11 +2840,14 @@ striType strHead (const const_striType stri, const intType stop)
       raise_error(INDEX_ERROR);
       head = NULL;
     } else {
-      if (unlikely(!ALLOC_STRI_SIZE_OK(head, (memSizeType) 0))) {
+      emptyStriType emptyStri;
+
+      if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
         raise_error(MEMORY_ERROR);
       } else {
-        head->size = 0;
+        emptyStri->size = 0;
       } /* if */
+      head = (striType) emptyStri;
     } /* if */
     logFunctionResult(printf("\"%s\"\n", striAsUnquotedCStri(head)););
     return head;
@@ -3554,11 +3619,14 @@ striType strMult (const const_striType stri, const intType factor)
     } else {
       len = stri->size;
       if (unlikely(len == 0)) {
-        if (unlikely(!ALLOC_STRI_SIZE_OK(result, 0))) {
+        emptyStriType emptyStri;
+
+        if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
           raise_error(MEMORY_ERROR);
         } else {
-          result->size = 0;
+          emptyStri->size = 0;
         } /* if */
+        result = (striType) emptyStri;
       } else if (unlikely((uintType) factor > MAX_STRI_LEN / len)) {
         raise_error(MEMORY_ERROR);
         result = NULL;
@@ -3925,11 +3993,14 @@ striType strRange (const const_striType stri, intType start, intType stop)
       raise_error(INDEX_ERROR);
       result = NULL;
     } else {
-      if (unlikely(!ALLOC_STRI_SIZE_OK(result, (memSizeType) 0))) {
+      emptyStriType emptyStri;
+
+      if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
         raise_error(MEMORY_ERROR);
       } else {
-        result->size = 0;
+        emptyStri->size = 0;
       } /* if */
+      result = (striType) emptyStri;
     } /* if */
     return result;
   } /* strRange */
@@ -4672,11 +4743,14 @@ striType strSubstr (const const_striType stri, intType start, intType length)
                result_size * sizeof(strElemType));
         result->size = result_size;
       } else {
-        if (unlikely(!ALLOC_STRI_SIZE_OK(result, (memSizeType) 0))) {
+        emptyStriType emptyStri;
+
+        if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
           raise_error(MEMORY_ERROR);
         } else {
-          result->size = 0;
+          emptyStri->size = 0;
         } /* if */
+        result = (striType) emptyStri;
       } /* if */
     } /* if */
     return result;
@@ -4837,11 +4911,14 @@ striType strTail (const const_striType stri, intType start)
              tailSize * sizeof(strElemType));
       tail->size = tailSize;
     } else {
-      if (unlikely(!ALLOC_STRI_SIZE_OK(tail, (memSizeType) 0))) {
+      emptyStriType emptyStri;
+
+      if (unlikely(!ALLOC_EMPTY_STRI(emptyStri))) {
         raise_error(MEMORY_ERROR);
       } else {
-        tail->size = 0;
+        emptyStri->size = 0;
       } /* if */
+      tail = (striType) emptyStri;
     } /* if */
     return tail;
   } /* strTail */

@@ -125,6 +125,10 @@ objectType bst_cat (listType arguments)
     isit_bstri(arg_3(arguments));
     bstri1 = take_bstri(arg_1(arguments));
     bstri2 = take_bstri(arg_3(arguments));
+    logFunction(printf("bst_cat(\"%s\", ",
+                       bstriAsUnquotedCStri(bstri1));
+                printf("\"%s\")\n",
+                       bstriAsUnquotedCStri(bstri2)););
     bstri1_size = bstri1->size;
     if (unlikely(bstri1_size > MAX_BSTRI_LEN - bstri2->size)) {
       /* number of bytes does not fit into memSizeType */
@@ -194,6 +198,11 @@ objectType bst_cpy (listType arguments)
     source = arg_3(arguments);
     isit_bstri(dest);
     isit_bstri(source);
+    logFunction(printf("bst_cpy(\"%s\", ",
+                       bstriAsUnquotedCStri(take_bstri(dest)));
+                printf("\"%s\")",
+                       bstriAsUnquotedCStri(take_bstri(source)));
+                fflush(stdout););
     is_variable(dest);
     bstri_dest = take_bstri(dest);
     if (TEMP_OBJECT(source)) {
@@ -245,6 +254,9 @@ objectType bst_create (listType arguments)
     dest = arg_1(arguments);
     source = arg_3(arguments);
     isit_bstri(source);
+    logFunction(printf("bst_create(*, \"%s\")",
+                       bstriAsUnquotedCStri(take_bstri(source)));
+                fflush(stdout););
     SET_CATEGORY_OF_OBJ(dest, BSTRIOBJECT);
     if (TEMP_OBJECT(source)) {
       dest->value.bstriValue = take_bstri(source);
@@ -257,8 +269,11 @@ objectType bst_create (listType arguments)
       } /* if */
       dest->value.bstriValue = new_bstri;
       new_bstri->size = new_size;
-      memcpy(new_bstri->mem, take_bstri(source)->mem, new_size);
+      memcpy_size_0_okay(new_bstri->mem, take_bstri(source)->mem,
+                         (size_t) new_size);
     } /* if */
+    logFunctionResult(printf(FMT_X_MEM "\n",
+                             (memSizeType) take_bstri(dest)););
     return SYS_EMPTY_OBJECT;
   } /* bst_create */
 
@@ -296,17 +311,17 @@ objectType bst_destr (listType arguments)
 objectType bst_empty (listType arguments)
 
   {
-    bstriType result;
+    emptyBStriType result;
 
   /* bst_empty */
-    if (unlikely(!ALLOC_BSTRI_SIZE_OK(result, 0))) {
+    if (unlikely(!ALLOC_EMPTY_BSTRI(result))) {
       return raise_exception(SYS_MEM_EXCEPTION);
     } else {
-      /* Note that the size of the allocated memory is smaller than */
-      /* the size of the struct. But this is okay, because the */
-      /* elements 'mem' respectively 'mem1' are not used. */
       result->size = 0;
-      return bld_bstri_temp(result);
+      /* Note that the size of the allocated memory is smaller than */
+      /* the size of bstriStruct. But this is okay, because the */
+      /* elements 'mem' respectively 'mem1' are not used. */
+      return bld_bstri_temp((bstriType) result);
     } /* if */
   } /* bst_empty */
 
@@ -487,6 +502,7 @@ objectType bst_value (listType arguments)
     bstriType result;
 
   /* bst_value */
+    logFunction(printf("bst_value\n"););
     isit_reference(arg_1(arguments));
     aReference = take_reference(arg_1(arguments));
     if (unlikely(aReference == NULL ||
@@ -502,7 +518,9 @@ objectType bst_value (listType arguments)
         return raise_exception(SYS_MEM_EXCEPTION);
       } else {
         result->size = bstri->size;
-        memcpy(result->mem, bstri->mem, result->size);
+        memcpy_size_0_okay(result->mem, bstri->mem,
+                           (size_t) bstri->size);
+        logFunction(printf("bst_value -->\n"););
         return bld_bstri_temp(result);
       } /* if */
     } /* if */

@@ -792,7 +792,11 @@ const proc: process_const_arr_idx (in reference: function, in reference: anArray
             c_expr.temp_decls &:= ";\n";
             c_expr.expr &:= "(";
             c_expr.expr &:= index_name;
-            c_expr.expr &:= "=(";
+            if ccConf.TWOS_COMPLEMENT_INTTYPE then
+              c_expr.expr &:= "=(uintType)(";
+            else
+              c_expr.expr &:= "=(";
+            end if;
             process_expr(index, c_expr);
             c_expr.expr &:= ")";
             if arrayMinIdx(anArray) <> 0 then
@@ -851,6 +855,8 @@ const proc: process_const_arr_idx (in reference: function, in reference: param1,
     var string: array_name is "";
     var type: arrayType is void;
     var string: result_name is "";
+    var integer: c_index is 0;
+    var boolean: index_overflows is FALSE;
   begin
     prepareAnyParamTemporarys(param1, c_param, c_expr);
     if c_param.result_expr <> "" then
@@ -917,19 +923,28 @@ const proc: process_const_arr_idx (in reference: function, in reference: param1,
       c_expr.expr &:= array_name;
       c_expr.expr &:= "->arr[";
       arrayType := getExprResultType(param1);
+      if arrayType in typeData.array_minIdx then
+        block
+          c_index := index - typeData.array_minIdx[arrayType];
+        exception
+          catch OVERFLOW_ERROR: index_overflows := TRUE;
+        end block;
+      end if;
       if config.array_index_check then
         if arrayType in typeData.array_minIdx and
             arrayType in typeData.array_maxIdx then
-          if index < typeData.array_minIdx[arrayType] or
+          if index_overflows or
+              index < typeData.array_minIdx[arrayType] or
               index > typeData.array_maxIdx[arrayType] then
             warning(DOES_RAISE, "INDEX_ERROR", c_expr);
             c_expr.expr &:= intRaiseError("INDEX_ERROR");
           else
             countIndexOptimizations(c_expr);
-            c_expr.expr &:= integerLiteral(index - typeData.array_minIdx[arrayType]);
+            c_expr.expr &:= integerLiteral(c_index);
           end if;
         elsif arrayType in typeData.array_minIdx and
-            index < typeData.array_minIdx[arrayType] then
+            (index_overflows or
+             index < typeData.array_minIdx[arrayType]) then
           warning(DOES_RAISE, "INDEX_ERROR", c_expr);
           c_expr.expr &:= intRaiseError("INDEX_ERROR");
         else
@@ -948,7 +963,7 @@ const proc: process_const_arr_idx (in reference: function, in reference: param1,
           c_expr.expr &:= intRaiseError("INDEX_ERROR");
           c_expr.expr &:= " : ";
           if arrayType in typeData.array_minIdx then
-            c_expr.expr &:= integerLiteral(index - typeData.array_minIdx[arrayType]);
+            c_expr.expr &:= integerLiteral(c_index);
           else
             c_expr.expr &:= integerLiteral(index);
             c_expr.expr &:= "-";
@@ -960,7 +975,12 @@ const proc: process_const_arr_idx (in reference: function, in reference: param1,
       else
         incr(count.suppressedIndexChecks);
         if arrayType in typeData.array_minIdx then
-          c_expr.expr &:= integerLiteral(index - typeData.array_minIdx[arrayType]);
+          if index_overflows then
+            warning(DOES_RAISE, "INDEX_ERROR", c_expr);
+            c_expr.expr &:= intRaiseError("INDEX_ERROR");
+          else
+            c_expr.expr &:= integerLiteral(c_index);
+          end if;
         else
           c_expr.expr &:= integerLiteral(index);
           c_expr.expr &:= "-";
@@ -1063,9 +1083,9 @@ const proc: process_base_array_index (in string: array_name,
           minIndex = 0 then
         c_expr.expr &:= "(uintType)";
         c_expr.expr &:= index_name;
-        c_expr.expr &:= " > (uintType)(";
+        c_expr.expr &:= " >= (uintType)(";
         c_expr.expr &:= array_name;
-        c_expr.expr &:= "->max_position)";
+        c_expr.expr &:= "->max_position) + 1";
       else
         if indexRange.minValue < minIndex then
           c_expr.expr &:= index_name;

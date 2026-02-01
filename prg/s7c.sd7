@@ -2797,7 +2797,7 @@ const proc: process_main_declaration (in reference: current_object,
     main_epilog &:= "  }\n";
     main_epilog &:= "  printf(\"\\n\");\n";
     if programUses.databaseLibrary then
-      main_epilog &:= "  if (fail_value == 6 /*DATABASE_ERROR*/) {\n";
+      main_epilog &:= "  if (fail_value == DATABASE_ERROR) {\n";
       main_epilog &:= "    striType message;\n";
       main_epilog &:= "    message = sqlErrMessage();\n";
       main_epilog &:= "    printf(\"\\nMessage from the DATABASE_ERROR exception:\\n\");\n";
@@ -5963,7 +5963,7 @@ const proc: write_file_head is func
                     \#define RANGE_ERROR     5\n\
                     \#define INDEX_ERROR     6\n\
                     \#define FILE_ERROR      7\n\
-                    \#define DATABSE_ERROR   8\n\
+                    \#define DATABASE_ERROR  8\n\
                     \#define GRAPHIC_ERROR   9\n\
                     \#define ACTION_ERROR   10\n\
                     \#define CREATE_ERROR   11\n\
@@ -7119,30 +7119,31 @@ const proc: init_string_constants_no_slices (in stri_index_hash: stri_index,
   begin
     for number range sort(keys(stri_index)) do
       stri := stri_index[number][1];
-      c_expr.expr &:= "/* str[";
-      c_expr.expr &:= str(number);
-      c_expr.expr &:= "] */ static strElemType stri_";
-      c_expr.expr &:= str(number);
-      c_expr.expr &:= "[]={";
+      write(c_prog, "/* str[");
+      write(c_prog, str(number));
+      write(c_prog, "] */ static strElemType stri_");
+      write(c_prog, str(number));
+      write(c_prog, "[]={");
       if ccConf.POINTER_SIZE = 32 then
-        c_expr.expr &:= str(length(stri));
-        c_expr.expr &:= ",";
+        write(c_prog, str(length(stri)));
+        write(c_prog, ",");
         if ccConf.WITH_STRI_CAPACITY then
-          c_expr.expr &:= str(length(stri));
-          c_expr.expr &:= ",";
+          write(c_prog, str(length(stri)));
+          write(c_prog, ",");
         end if;
       elsif ccConf.POINTER_SIZE = 64 then
-        c_expr.expr &:= int64AsTwoInt32(bigInteger(length(stri)));
+        write(c_prog, int64AsTwoInt32(bigInteger(length(stri))));
         if ccConf.WITH_STRI_CAPACITY then
-          c_expr.expr &:= int64AsTwoInt32(bigInteger(length(stri)));
+          write(c_prog, int64AsTwoInt32(bigInteger(length(stri))));
         end if;
       end if;
       for ch range stri do
-        c_expr.expr &:= c_literal(ch);
-        c_expr.expr &:= ",";
+        write(c_prog, c_literal(ch));
+        write(c_prog, ",");
       end for;
-      c_expr.expr &:= "};\n";
+      writeln(c_prog, "};");
     end for;
+    writeln(c_prog);
     c_expr.expr &:= "striType str[]={\n";
     if length(constTable.stri_const) > 0 then
       for number range sort(keys(stri_index)) do
