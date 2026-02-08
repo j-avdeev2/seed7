@@ -4656,12 +4656,12 @@ static void checkRemoveDir (const char *makeDirDef, FILE *versionFile)
 
 
 
-static void determineGetaddrlimit (FILE *versionFile)
+static void determineGetrlimit (FILE *versionFile)
 
   {
     int has_getrlimit;
 
-  /* determineGetaddrlimit */
+  /* determineGetrlimit */
     /* In FreeBSD it is necessary to include <sys/types.h> before <sys/resource.h> */
     has_getrlimit = compileAndLinkOk("#include <stdio.h>\n"
                                      "#include <sys/types.h>\n#include <sys/resource.h>\n"
@@ -4704,7 +4704,102 @@ static void determineGetaddrlimit (FILE *versionFile)
         fprintf(versionFile, "#define HARD_STACK_LIMIT %lu\n", (unsigned long) doTest() * 1024);
       } /* if */
     } /* if */
-  } /* determineGetaddrlimit */
+  } /* determineGetrlimit */
+
+
+
+static void determineSigaltstack (FILE *versionFile)
+
+  {
+    int has_sigaltstack;
+    int sigaltstack_enabled;
+
+  /* determineSigaltstack */
+    has_sigaltstack = compileAndLinkOk("#include <stdio.h>\n#include <signal.h>\n"
+                                       "int main(int argc, char *argv[]){\n"
+                                       "stack_t ss;\n"
+                                       "printf(\"%d\\n\", sigaltstack(NULL, &ss) == 0);\n"
+                                       "return 0;}\n") && doTest() == 1;
+    fprintf(versionFile, "#define HAS_SIGALTSTACK %d\n", has_sigaltstack);
+    if (has_sigaltstack) {
+      if (assertCompAndLnk("#include <stdio.h>\n#include <signal.h>\n"
+                           "int main(int argc, char *argv[]){\n"
+                           "stack_t ss;\n"
+                           "if (sigaltstack(NULL, &ss) == 0) {\n"
+                           "  printf(\"%d\\n\", ss.ss_flags & SS_DISABLE != 0);\n"
+                           "} else {\n"
+                           "  printf(\"-1\\n\");\n"
+                           "}\n"
+                           "return 0;}\n")) {
+        sigaltstack_enabled = doTest();
+        fprintf(versionFile, "#define SIGNAL_STACK_ENABLED %d\n", sigaltstack_enabled);
+        if (sigaltstack_enabled) {
+          if (assertCompAndLnk("#include <stdio.h>\n#include <signal.h>\n"
+                               "int main(int argc, char *argv[]){\n"
+                               "stack_t ss;\n"
+                               "if (sigaltstack(NULL, &ss) == 0) {\n"
+                               "  printf(\"%d\\n\", (int) ss.ss_size);\n"
+                               "} else {\n"
+                               "  printf(\"-1\\n\");\n"
+                               "}\n"
+                               "return 0;}\n")) {
+            fprintf(versionFile, "#define SIGNAL_STACK_SIZE %d\n", doTest());
+          } /* if */
+        } else {
+          if (assertCompAndLnk("#include <stdio.h>\n#include <signal.h>\n"
+                               "#include <stdlib.h>\n"
+                               "int main(int argc, char *argv[]){\n"
+                               "stack_t ss, ss_old;\n"
+                               "ss.ss_sp = malloc(SIGSTKSZ);\n"
+                               "if (ss.ss_sp == NULL) {\n"
+                               "  printf(\"-1\\n\");\n"
+                               "} else {\n"
+                               "  ss.ss_size = SIGSTKSZ;\n"
+                               "  ss.ss_flags = 0;\n"
+                               "  if (sigaltstack(&ss, NULL) == -1) {\n"
+                               "    printf(\"-1\\n\");\n"
+                               "  } else {\n"
+                               "    if (sigaltstack(NULL, &ss_old) == 0) {\n"
+                               "      printf(\"%d\\n\", (int) ss_old.ss_size);\n"
+                               "    } else {\n"
+                               "      printf(\"-1\\n\");\n"
+                               "    }\n"
+                               "  }\n"
+                               "}\n"
+                               "return 0;}\n")) {
+            fprintf(versionFile, "#define SIGNAL_STACK_SIZE %d\n", doTest());
+          } /* if */
+        } /* if */
+      } /* if */
+    } else {
+      fputs("#define SIGNAL_STACK_ENABLED 0\n", versionFile);
+    } /* if */
+  } /* determineSigaltstack */
+
+
+
+static void determineAddVectoredExceptionHandler (FILE *versionFile)
+
+  { /* determineAddVectoredExceptionHandler */
+    fprintf(versionFile, "#define HAS_ADD_VECTORED_EXCEPTION_HANDLER %d\n",
+            compileAndLinkOk("#define _WIN32_WINNT 0x500\n"
+                            "#include <windows.h>\n#include <stdio.h>\n"
+                            "#include <setjmp.h>\n"
+                            "jmp_buf jump_buffer;\n"
+                            "LONG WINAPI stackOverflowHandler (PEXCEPTION_POINTERS pExp) {\n"
+                            "  longjmp(jump_buffer, 1); return 0; }\n"
+                            "void stackOverflow (unsigned int param) {\n"
+                            "  stackOverflow(param + 1); }\n"
+                            "int main (int argc, char *argv[]) {\n"
+                            "  int jmpret;\n"
+                            "  AddVectoredExceptionHandler(1, stackOverflowHandler);\n"
+                            "  if ((jmpret = setjmp(jump_buffer)) == 0 ) {\n"
+                            "    stackOverflow(1);\n"
+                            "    printf(\"0\\n\");\n"
+                            "  } else {\n"
+                            "    printf(\"%d\\n\", jmpret);\n"
+                            "  } return 0; }\n") && doTest() == 1);
+  } /* determineAddVectoredExceptionHandler */
 
 
 
@@ -7477,7 +7572,7 @@ static void determinePartialLinking (FILE *versionFile)
 #endif
     if (!supportsPartialLinking) {
       appendToFile("macros", "LINKER_OPT_PARTIAL_LINKING =\n");
-      appendToFile("macros", "OBJCOPY = @echo \"No partial linking with objcopy\"\n");
+      appendToFile("macros", "OBJCOPY = echo \"***** No partial linking with objcopy\"\n");
     } /* if */
   } /* determinePartialLinking */
 
@@ -11648,7 +11743,9 @@ int main (int argc, char **argv)
     closeVersionFile(versionFile);
     copyFile(versionFileName, "tst_vers.h");
     versionFile = openVersionFile(versionFileName);
-    determineGetaddrlimit(versionFile);
+    determineGetrlimit(versionFile);
+    determineSigaltstack(versionFile);
+    determineAddVectoredExceptionHandler(versionFile);
     fprintf(versionFile, "#define STRCMP_RETURNS_SIGNUM %d\n",
         compileAndLinkOk("#include <stdio.h>\n#include <string.h>\n"
                          "int main(int argc, char *argv[]){\n"

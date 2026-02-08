@@ -1,26 +1,32 @@
 /********************************************************************/
 /*                                                                  */
-/*  s7   Seed7 interpreter                                          */
+/*  sigutl.c      Driver shutdown and signal handling.              */
 /*  Copyright (C) 1990 - 2000, 2014, 2016, 2017  Thomas Mertes      */
+/*                2019, 2020, 2021, 2025  Thomas Mertes             */
 /*                                                                  */
-/*  This program is free software; you can redistribute it and/or   */
-/*  modify it under the terms of the GNU General Public License as  */
-/*  published by the Free Software Foundation; either version 2 of  */
-/*  the License, or (at your option) any later version.             */
+/*  This file is part of the Seed7 Runtime Library.                 */
 /*                                                                  */
-/*  This program is distributed in the hope that it will be useful, */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of  */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the   */
-/*  GNU General Public License for more details.                    */
+/*  The Seed7 Runtime Library is free software; you can             */
+/*  redistribute it and/or modify it under the terms of the GNU     */
+/*  Lesser General Public License as published by the Free Software */
+/*  Foundation; either version 2.1 of the License, or (at your      */
+/*  option) any later version.                                      */
 /*                                                                  */
-/*  You should have received a copy of the GNU General Public       */
-/*  License along with this program; if not, write to the           */
+/*  The Seed7 Runtime Library is distributed in the hope that it    */
+/*  will be useful, but WITHOUT ANY WARRANTY; without even the      */
+/*  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR */
+/*  PURPOSE.  See the GNU Lesser General Public License for more    */
+/*  details.                                                        */
+/*                                                                  */
+/*  You should have received a copy of the GNU Lesser General       */
+/*  Public License along with this program; if not, write to the    */
 /*  Free Software Foundation, Inc., 51 Franklin Street,             */
 /*  Fifth Floor, Boston, MA  02110-1301, USA.                       */
 /*                                                                  */
-/*  Module: General                                                 */
+/*  Module: Seed7 Runtime Library                                   */
 /*  File: seed7/src/sigutl.c                                        */
-/*  Changes: 1993, 1994  Thomas Mertes                              */
+/*  Changes: 1990 - 2000, 2014, 2016, 2017, 2019  Thomas Mertes     */
+/*           2020, 2021, 2025  Thomas Mertes                        */
 /*  Content: Driver shutdown and signal handling.                   */
 /*                                                                  */
 /********************************************************************/
@@ -37,7 +43,9 @@
 
 #include "common.h"
 #include "os_decls.h"
+#include "heaputl.h"
 #include "fil_drv.h"
+#include "segv_drv.h"
 #include "rtl_err.h"
 
 #undef EXTERN
@@ -201,7 +209,8 @@ static boolType signalDecision (int signalNum, boolType inHandler)
       buffer[position] = '\0';
       if (position > 0 && buffer[0] >= '0' && buffer[0] <= '9') {
         exceptionNum = strtoul(buffer, NULL, 10);
-        if (exceptionNum > OKAY_NO_ERROR && exceptionNum <= ACTION_ERROR) {
+        if (exceptionNum > OKAY_NO_ERROR &&
+            exceptionNum <= ACTION_ERROR && signalNum != SIGSEGV) {
           raise_error((int) exceptionNum);
         } /* if */
       } /* if */
@@ -218,7 +227,7 @@ static boolType signalDecision (int signalNum, boolType inHandler)
 
 #if HAS_SIGACTION || HAS_SIGNAL
 /**
- *  Signal handler that is used if tracing signals as been activated.
+ *  Tracing signal handler for normalSignals.
  *  Tracing signals is activated in interpreter and compiler with the
  *  option -ts. This signal handler is used for normalSignals
  *  (e.g.: SIGABRT, SIGILL, SIGINT, SIGFPE).
@@ -290,11 +299,29 @@ static void handleTermSignal (int signalNum)
 
 
 /**
- *  Signal handler for the signal SIGSEGV.
+ *  Tracing signal handler for the signal SIGSEGV.
+ *  Tracing signals is activated in interpreter and
+ *  compiler with the option -ts.
  */
-static void handleSegvSignal (int signalNum)
+static void handleTracedSegvSignal (int signalNum)
 
-  { /* handleSegvSignal */
+  { /* handleTracedSegvSignal */
+#if HAS_SIGALTSTACK
+#if defined SIGALRM && !HAS_SIGACTION
+    signal(SIGALRM, SIG_IGN);
+#endif
+#if DIALOG_IN_SIGNAL_HANDLER
+    (void) signalDecision(signalNum, TRUE);
+#else
+    if (suspendInterpreter != NULL) {
+      suspendInterpreter(signalNum);
+    } /* if */
+#endif
+#if SIGNAL_RESETS_HANDLER
+    signal(signalNum, handleTracedSegvSignal);
+#endif
+    no_memory(SOURCE_POSITION(3011));
+#else
     shutDrivers();
     printf("\n*** SIGNAL SEGV RAISED\n"
            "\n*** Program terminated.\n");
@@ -310,6 +337,21 @@ static void handleSegvSignal (int signalNum)
     signal(SIGABRT, SIG_DFL);
 #endif
     abort();
+#endif
+  } /* handleTracedSegvSignal */
+
+
+
+/**
+ *  Signal handler for the signal SIGSEGV.
+ */
+static void handleSegvSignal (int signalNum)
+
+  { /* handleSegvSignal */
+#if SIGNAL_RESETS_HANDLER
+    signal(signalNum, handleSegvSignal);
+#endif
+    no_memory(SOURCE_POSITION(3012));
   } /* handleSegvSignal */
 
 
@@ -372,17 +414,24 @@ void setupSignalHandlers (boolType handleSignals,
 #endif
       sigAct.sa_handler = handleTermSignal;
       okay = okay && sigaction(SIGTERM,  &sigAct, NULL) == 0;
+      sigAct.sa_flags = SA_ONSTACK;
       if (traceSignals) {
-        sigAct.sa_handler = handleSegvSignal;
+        sigAct.sa_handler = handleTracedSegvSignal;
       } else {
+#if HAS_SIGALTSTACK
+        sigAct.sa_handler = handleSegvSignal;
+#else
         sigAct.sa_handler = SIG_DFL;
+#endif
       } /* if */
       okay = okay && sigaction(SIGSEGV, &sigAct, NULL) == 0;
 #ifdef SIGPIPE
+      sigAct.sa_flags = SA_RESTART;
       sigAct.sa_handler = SIG_IGN;
       okay = okay && sigaction(SIGPIPE, &sigAct, NULL) == 0;
 #endif
     } /* if */
+    okay = okay && setupSegmentationViolationHandler();
     if (!okay) {
       printf("\n*** Activating signal handlers failed.\n");
     } /* if */
@@ -434,7 +483,7 @@ void setupSignalHandlers (boolType handleSignals,
 #endif
       okay = okay && signal(SIGTERM, handleTermSignal) != SIG_ERR;
       if (traceSignals) {
-        sigHandler = handleSegvSignal;
+        sigHandler = handleTracedSegvSignal;
       } else {
         sigHandler = SIG_DFL;
       } /* if */
@@ -443,6 +492,7 @@ void setupSignalHandlers (boolType handleSignals,
       signal(SIGPIPE, SIG_IGN);
 #endif
     } /* if */
+    okay = okay && setupSegmentationViolationHandler();
     if (!okay) {
       printf("\n*** Activating signal handlers failed.\n");
     } /* if */
@@ -462,6 +512,9 @@ void setupSignalHandlers (boolType handleSignals,
     logFunction(printf("setupSignalHandlers(%d, %d, %d, %d, " FMT_U_MEM ")\n",
                        handleSignals, traceSignals, overflowSigError,
                        fpeNumericError, (memSizeType) suspendInterpr););
+    if (!setupSegmentationViolationHandler()) {
+      printf("\n*** Activating signal handlers failed.\n");
+    } /* if */
     logFunction(printf("setupSignalHandlers -->\n"););
   } /* setupSignalHandlers */
 #endif

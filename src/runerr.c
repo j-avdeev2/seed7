@@ -63,6 +63,9 @@
 #include "runerr.h"
 
 
+const char *error_file = NULL;
+int error_line = 0;
+
 static longjmpPosition sigsegvOccurred;
 
 
@@ -304,17 +307,23 @@ void uncaught_exception (progType aProg)
         prot_cstri("*** Program terminated after exception ");
       } /* if */
       printobject(fail_value);
-      prot_cstri(" raised with");
-      prot_nl();
-      prot_string(fail_expr_stri);
-      prot_nl();
+      prot_cstri(" raised");
+      if (fail_expr_stri != NULL) {
+        prot_cstri(" with");
+        prot_nl();
+        prot_string(fail_expr_stri);
+      } else {
+        prot_nl();
+      } /* if */
     } else {
       printf("\n*** Program terminated after signal %s\n",
              signalName(signal_number));
     } /* if */
-    prot_nl();
-    prot_cstri("Stack:\n");
-    write_call_stack(fail_stack);
+    if (fail_stack != NULL) {
+      prot_nl();
+      prot_cstri("Stack:\n");
+      write_call_stack(fail_stack);
+    } /* if */
     prog = progBackup;
   } /* uncaught_exception */
 
@@ -432,6 +441,8 @@ objectType raise_with_obj_and_args (objectType exception,
       prot_nl(); */
     } /* if */
     set_fail_flag(TRUE);
+    error_file = NULL;
+    error_line = 0;
     logFunction(printf("raise_with_obj_and_args -->\n"););
     return exception;
   } /* raise_with_obj_and_args */
@@ -465,6 +476,8 @@ void interprRaiseError (int exception_num, const_cstriType fileName, int line)
     logFunction(printf("interprRaiseError(%d, \"%s\", %d)\n",
                        exception_num, fileName, line););
     (void) raise_exception(prog->sys_var[exception_num]);
+    error_file = fileName;
+    error_line = line;
   } /* interprRaiseError */
 
 
