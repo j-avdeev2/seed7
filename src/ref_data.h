@@ -28,9 +28,10 @@
 objectType refAlloc (const const_objectType obj1);
 objectType refAllocInt (boolType isVar, typeType aType,
                         const intType number);
+objectType refAllocRef (const intType aCategory,
+                        const const_objectType obj1);
 objectType refAllocStri (boolType isVar, typeType aType,
                          const const_striType stri);
-objectType refAllocVar (typeType aType, const intType aCategory);
 void refAppendParams (objectType funcRef, const_listType params);
 intType refArrMaxIdx (const const_objectType arrayRef);
 intType refArrMinIdx (const const_objectType arrayRef);

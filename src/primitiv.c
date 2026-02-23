@@ -50,7 +50,6 @@
 #include "intlib.h"
 #include "itflib.h"
 #include "kbdlib.h"
-#include "lstlib.h"
 #include "pcslib.h"
 #include "pollib.h"
 #include "prclib.h"
@@ -647,19 +646,6 @@ static const actEntryRecord actEntryTable[] = {
     { "KBD_RAW_GETC",                 kbd_raw_getc,                 },
     { "KBD_WORD_READ",                kbd_word_read,                },
 
-    { "LST_CAT",                      lst_cat,                      },
-    { "LST_CPY",                      lst_cpy,                      },
-    { "LST_CREATE",                   lst_create,                   },
-    { "LST_DESTR",                    lst_destr,                    },
-    { "LST_EMPTY",                    lst_empty,                    },
-    { "LST_EXCL",                     lst_excl,                     },
-    { "LST_HEAD",                     lst_head,                     },
-    { "LST_IDX",                      lst_idx,                      },
-    { "LST_INCL",                     lst_incl,                     },
-    { "LST_LNG",                      lst_lng,                      },
-    { "LST_RANGE",                    lst_range,                    },
-    { "LST_TAIL",                     lst_tail,                     },
-
     { "PCS_CHILD_STDERR",             pcs_child_stderr,             },
     { "PCS_CHILD_STDIN",              pcs_child_stdin,              },
     { "PCS_CHILD_STDOUT",             pcs_child_stdout,             },
@@ -788,8 +774,8 @@ static const actEntryRecord actEntryTable[] = {
 #if WITH_REFERENCE
     { "REF_ALLOC",                    ref_alloc,                    },
     { "REF_ALLOC_INT",                ref_alloc_int,                },
+    { "REF_ALLOC_REF",                ref_alloc_ref,                },
     { "REF_ALLOC_STRI",               ref_alloc_stri,               },
-    { "REF_ALLOC_VAR",                ref_alloc_var,                },
     { "REF_APPEND_PARAMS",            ref_append_params,            },
     { "REF_ARRMAXIDX",                ref_arrmaxidx,                },
     { "REF_ARRMINIDX",                ref_arrminidx,                },
@@ -823,7 +809,6 @@ static const actEntryRecord actEntryTable[] = {
     { "REF_RESINI",                   ref_resini,                   },
     { "REF_RESULT",                   ref_result,                   },
     { "REF_SCTTOLIST",                ref_scttolist,                },
-    { "REF_SELECT",                   ref_select,                   },
     { "REF_SETCATEGORY",              ref_setcategory,              },
     { "REF_SETPARAMS",                ref_setparams,                },
     { "REF_SETTYPE",                  ref_settype,                  },
