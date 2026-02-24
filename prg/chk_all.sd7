@@ -363,6 +363,11 @@ const string: chktime_output is "\n\
   \await accepts only legal time values.\n\
   \setLocalTZ accepts only legal time values.\n";
 
+const string: chkdecl_output is "\n\
+  \Local variables work correctly.\n\
+  \Parameters work correctly.\n\
+  \Recursive local variables work correctly.\n";
+
 const string: chkscan_output is "\n\
   \The function getDigits works correctly.\n\
   \The function getHexDigits works correctly.\n\
@@ -816,6 +821,7 @@ const proc: main is func
     check("chkbool", chkbool_output);
     check("chkenum", chkenum_output);
     check("chktime", chktime_output);
+    check("chkdecl", chkdecl_output);
     check("chkscan", chkscan_output);
     check("chkjson", chkjson_output);
     check("chktoml", chktoml_output);
