@@ -854,7 +854,7 @@ const proc: makeParentDirs (in string: filePath) is func
       if fileTypeSL(dirPath) = FILE_ABSENT then
         makeDir(dirPath);
         slashPos := pos(filePath, '/', succ(slashPos));
-      elsif fileTypeSL(dirPath) = FILE_DIR then
+      elsif fileType(dirPath) = FILE_DIR then
         slashPos := pos(filePath, '/', succ(slashPos));
       else
         raise FILE_ERROR;
