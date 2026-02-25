@@ -5338,8 +5338,7 @@ const proc: changeCallsOfLocalFunction (inout reference: current_expression,
       if paramCategory = MATCHOBJECT or paramCategory = CALLOBJECT then
         changeCallsOfLocalFunction(aParam, local_function, additional_params);
       elsif aParam = local_function then
-        aParam := alloc(aParam);
-        setCategory(aParam, MATCHOBJECT);
+        aParam := allocList(MATCHOBJECT, aParam);
         setValue(aParam, make_list(params[paramNum]) & additional_params);
         params @:= [paramNum] aParam;
         setValue(current_expression, params);
