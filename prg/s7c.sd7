@@ -1120,7 +1120,6 @@ const proc: defineFunctype (in string: valueName, in reference: actual_param,
     c_expr.expr &:= "struct {\n";
     for dataItem range data_list do
       if not isVar(dataItem) then
-        c_expr.expr &:= "const ";
         if useConstPrefix(dataItem) then
           c_expr.expr &:= "const_";
         end if;
@@ -1617,6 +1616,10 @@ const proc: process_call (in reference: current_expression, inout expr_type: c_e
         write_object_declaration := FALSE;
         calls_dcl_actions := TRUE;
       else
+        if function not in prototype_declared then
+          process_prototype_declaration(function, global_c_expr);
+          prototype_declared @:= [function] TRUE;
+        end if;
         process_func_call(function, params, c_expr);
       end if;
     elsif functionCategory = LOCALVOBJECT then
@@ -5290,7 +5293,7 @@ const proc: replaceLocalsFromOutside (in reference: local_function,
     var reference: formalRefParam is NIL;
   begin
     params := getValue(current_expression, ref_list);
-    for paramNum range 2 to length(params) do
+    for paramNum range 1 to length(params) do
       aParam := params[paramNum];
       paramCategory := category(aParam);
       if paramCategory = MATCHOBJECT or paramCategory = CALLOBJECT then
