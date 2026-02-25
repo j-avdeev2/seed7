@@ -753,7 +753,6 @@ const func integer: line (in reference: aReference)                    is action
 const func integer: objNumber (in reference: aReference)               is action "REF_NUM";
 
 
-const func reference: alloc (in reference: aReference)                 is action "REF_ALLOC";
 const func reference: allocList (in category: aCategory, in reference: aReference)  is action "REF_ALLOC_LIST";
 const func reference: alloc (in category: aCategory, in reference: aReference)      is action "REF_ALLOC_REF";
 

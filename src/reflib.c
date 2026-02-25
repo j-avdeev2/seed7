@@ -66,20 +66,6 @@
 
 
 
-objectType ref_alloc (listType arguments)
-
-  { /* ref_alloc */
-    isit_reference(arg_1(arguments));
-    logFunction(printf("ref_alloc(" FMT_U_MEM " ",
-                       (memSizeType) take_reference(arg_1(arguments)));
-                trace1(take_reference(arg_1(arguments)));
-                printf(")\n"););
-    return bld_reference_temp(
-        refAlloc(take_reference(arg_1(arguments))));
-  } /* ref_alloc */
-
-
-
 objectType ref_alloc_int (listType arguments)
 
   { /* ref_alloc_int */

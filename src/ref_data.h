@@ -25,7 +25,6 @@
 /*                                                                  */
 /********************************************************************/
 
-objectType refAlloc (const const_objectType obj1);
 objectType refAllocInt (boolType isVar, typeType aType,
                         const intType number);
 objectType refAllocList (const intType aCategory,
