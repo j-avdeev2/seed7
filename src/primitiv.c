@@ -774,6 +774,7 @@ static const actEntryRecord actEntryTable[] = {
 #if WITH_REFERENCE
     { "REF_ALLOC",                    ref_alloc,                    },
     { "REF_ALLOC_INT",                ref_alloc_int,                },
+    { "REF_ALLOC_LIST",               ref_alloc_list,               },
     { "REF_ALLOC_REF",                ref_alloc_ref,                },
     { "REF_ALLOC_STRI",               ref_alloc_stri,               },
     { "REF_APPEND_PARAMS",            ref_append_params,            },

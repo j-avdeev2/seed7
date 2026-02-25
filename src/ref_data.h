@@ -28,6 +28,8 @@
 objectType refAlloc (const const_objectType obj1);
 objectType refAllocInt (boolType isVar, typeType aType,
                         const intType number);
+objectType refAllocList (const intType aCategory,
+                         const const_objectType obj1);
 objectType refAllocRef (const intType aCategory,
                         const const_objectType obj1);
 objectType refAllocStri (boolType isVar, typeType aType,

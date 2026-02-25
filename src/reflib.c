@@ -100,6 +100,23 @@ objectType ref_alloc_int (listType arguments)
 
 
 
+objectType ref_alloc_list (listType arguments)
+
+  { /* ref_alloc_list */
+    isit_int(arg_1(arguments));
+    isit_reference(arg_2(arguments));
+    logFunction(printf("ref_alloc_list(");
+                printcategory((objectCategory) take_int(arg_1(arguments)));
+                printf(", ");
+                trace1(take_reference(arg_2(arguments)));
+                printf(")\n"););
+    return bld_reference_temp(
+        refAllocList(take_int(arg_1(arguments)),
+                     take_reference(arg_2(arguments))));
+  } /* ref_alloc_list */
+
+
+
 objectType ref_alloc_ref (listType arguments)
 
   { /* ref_alloc_ref */

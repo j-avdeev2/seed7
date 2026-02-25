@@ -145,6 +145,64 @@ objectType refAllocInt (boolType isVar, typeType aType,
 
 
 
+objectType refAllocList (const intType aCategory,
+    const const_objectType obj1)
+
+  {
+    objectCategory objCategory;
+    propertyType created_property;
+    objectType created_object;
+
+  /* refAllocList */
+    logFunction(printf("refAllocList(");
+                printcategory((objectCategory) aCategory);
+                printf(", ");
+                trace1(obj1);
+                printf(")\n"););
+    if (unlikely(aCategory != CALLOBJECT &&
+                 aCategory != MATCHOBJECT &&
+                 aCategory != LISTOBJECT &&
+                 aCategory != REFLISTOBJECT &&
+                 aCategory != EXPROBJECT)) {
+      logError(printf("refAllocList(");
+               printcategory((objectCategory) aCategory);
+               printf(", ");
+               trace1(obj1);
+               printf("): Not a object list category.\n"););
+      raise_error(RANGE_ERROR);
+      created_object = NULL;
+    } else if (unlikely(obj1 == NULL ||
+                        (objCategory = CATEGORY_OF_OBJ(obj1),
+                         objCategory != BLOCKOBJECT &&
+                         objCategory != ACTOBJECT))) {
+      logError(printf("refAllocList(");
+               printcategory((objectCategory) aCategory);
+               printf(", ");
+               trace1(obj1);
+               printf("): Not a legal object reference.\n"););
+      raise_error(RANGE_ERROR);
+      created_object = NULL;
+    } else if (unlikely(!ALLOC_OBJECT(created_object))) {
+      raise_error(MEMORY_ERROR);
+    } else {
+      created_object->type_of = obj1->type_of;
+      if (HAS_POSINFO(obj1)) {
+        created_object->descriptor.posinfo = obj1->descriptor.posinfo;
+        INIT_CATEGORY_OF_POSINFO(created_object, aCategory);
+      } else {
+        created_object->descriptor.property = prog->property.literal;
+        INIT_CATEGORY_OF_OBJ(created_object, aCategory);
+      } /* if */
+      created_object->value.listValue = NULL;
+    } /* if */
+    logFunction(printf("refAllocList --> ");
+                trace1(created_object);
+                printf("\n"););
+    return created_object;
+  } /* refAllocList */
+
+
+
 objectType refAllocRef (const intType aCategory,
     const const_objectType obj1)
 
