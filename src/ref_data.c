@@ -135,7 +135,7 @@ objectType refAllocList (const intType aCategory,
                printcategory((objectCategory) aCategory);
                printf(", ");
                trace1(obj1);
-               printf("): Not a legal object reference.\n"););
+               printf("): Neiter BLOCKOBJECT nor ACTOBJECT.\n"););
       raise_error(RANGE_ERROR);
       created_object = NULL;
     } else if (unlikely(!ALLOC_OBJECT(created_object))) {
