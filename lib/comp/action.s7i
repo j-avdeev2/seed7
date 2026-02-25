@@ -1458,8 +1458,6 @@ const proc: process_action (in reference: function, in ref_list: params,
         process(PRG_SYSVAR, function, params, c_expr);
       when {"PRG_VALUE"}:
         process(PRG_VALUE, function, params, c_expr);
-      when {"REF_ALLOC"}:
-        process(REF_ALLOC, function, params, c_expr);
       when {"REF_ALLOC_INT"}:
         process(REF_ALLOC_INT, function, params, c_expr);
       when {"REF_ALLOC_LIST"}:
