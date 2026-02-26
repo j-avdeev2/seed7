@@ -34,5 +34,4 @@ objectType sct_destr  (listType arguments);
 objectType sct_empty  (listType arguments);
 objectType sct_incl   (listType arguments);
 objectType sct_lng    (listType arguments);
-objectType sct_refidx (listType arguments);
 objectType sct_select (listType arguments);

@@ -488,33 +488,6 @@ objectType sct_lng (listType arguments)
 
 
 
-objectType sct_refidx (listType arguments)
-
-  {
-    structType stru1;
-    intType position;
-    objectType struct_pointer;
-    objectType result;
-
-  /* sct_refidx */
-    isit_struct(arg_1(arguments));
-    isit_int(arg_3(arguments));
-    stru1 = take_struct(arg_1(arguments));
-    position = take_int(arg_3(arguments));
-    struct_pointer = stru1->stru;
-    if (position >= 1 && ((memSizeType) position) <= stru1->size) {
-      result = bld_reference_temp(&struct_pointer[position - 1]);
-    } else {
-      logError(printf("sct_refidx(" FMT_U_MEM ", " FMT_D "): "
-                      "Index out of range.\n",
-                      (memSizeType) stru1, position););
-      result = raise_exception(SYS_RNG_EXCEPTION);
-    } /* if */
-    return result;
-  } /* sct_refidx */
-
-
-
 objectType sct_select (listType arguments)
 
   {

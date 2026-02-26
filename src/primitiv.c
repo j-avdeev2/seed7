@@ -856,7 +856,6 @@ static const actEntryRecord actEntryTable[] = {
     { "SCT_EMPTY",                    sct_empty,                    },
     { "SCT_INCL",                     sct_incl,                     },
     { "SCT_LNG",                      sct_lng,                      },
-    { "SCT_REFIDX",                   sct_refidx,                   },
     { "SCT_SELECT",                   sct_select,                   },
 
     { "SEL_CMP",                      sel_cmp,                      },
