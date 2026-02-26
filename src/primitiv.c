@@ -560,7 +560,6 @@ static const actEntryRecord actEntryTable[] = {
     { "HSH_KEYS",                     hsh_keys,                     },
     { "HSH_LNG",                      hsh_lng,                      },
     { "HSH_RAND_KEY",                 hsh_rand_key,                 },
-    { "HSH_REFIDX",                   hsh_refidx,                   },
     { "HSH_UPDATE",                   hsh_update,                   },
     { "HSH_VALUES",                   hsh_values,                   },
 

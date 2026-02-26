@@ -1550,64 +1550,6 @@ objectType hsh_rand_key (listType arguments)
 
 
 
-objectType hsh_refidx (listType arguments)
-
-  {
-    hashType aHashMap;
-    intType hashcode;
-    objectType aKey;
-    objectType cmp_func;
-    hashElemType hashelem;
-    hashElemType result_hashelem;
-    objectType cmp_obj;
-    intType cmp;
-    objectType hash_exec_object;
-    objectType result;
-
-  /* hsh_refidx */
-    isit_hash(arg_1(arguments));
-    isit_int(arg_3(arguments));
-    isit_reference(arg_4(arguments));
-    aHashMap =      take_hash(arg_1(arguments));
-    aKey     =                arg_2(arguments);
-    hashcode =       take_int(arg_3(arguments));
-    cmp_func = take_reference(arg_4(arguments));
-    hash_exec_object = curr_exec_object;
-    isit_not_null(cmp_func);
-    result_hashelem = NULL;
-    hashelem = aHashMap->table[(unsigned int) hashcode & aHashMap->mask];
-    while (hashelem != NULL) {
-      cmp_obj = param3_call(cmp_func, &hashelem->key, aKey, cmp_func);
-      isit_not_null(cmp_obj);
-      isit_int(cmp_obj);
-      cmp = take_int(cmp_obj);
-      FREE_OBJECT(cmp_obj);
-      if (cmp < 0) {
-        hashelem = hashelem->next_less;
-      } else if (cmp == 0) {
-        result_hashelem = hashelem;
-        hashelem = NULL;
-      } else {
-        hashelem = hashelem->next_greater;
-      } /* if */
-    } /* while */
-    if (unlikely(result_hashelem != NULL)) {
-      result = &result_hashelem->data;
-      if (unlikely(TEMP_OBJECT(arg_1(arguments)))) {
-        /* The hash will be destroyed after indexing. */
-        /* Therefore it is necessary here to remove it */
-        /* from the hashtable to avoid a crash !!!!! */
-        return raise_with_obj_and_args(SYS_MEM_EXCEPTION,
-                                       hash_exec_object, arguments);
-      } /* if */
-    } else {
-      result = NULL;
-    } /* if */
-    return bld_reference_temp(result);
-  } /* hsh_refidx */
-
-
-
 /**
  *  Add 'data/arg_3' with the key 'aKey/arg_2' to the hash map 'aHashMap/arg_1'.
  *  If an element with the key 'aKey/arg_2' already exists,
