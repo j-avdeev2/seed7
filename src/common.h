@@ -545,7 +545,6 @@ typedef char              *cstriType;
 typedef unsigned char     *ustriType;
 typedef memSizeType        sySizeType;
 typedef FILE              *cFileType;
-typedef int                fileDesType;
 
 typedef uint16Type           utf16charType;
 typedef utf16charType       *utf16striType;

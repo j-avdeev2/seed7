@@ -112,7 +112,6 @@ typedef union {
     uintType         binaryValue;    /* INTOBJECT */
     rtlInterfaceType interfaceValue; /* INTERFACEOBJECT */
     fileType         fileValue;      /* FILEOBJECT */
-    fileDesType      fileDesValue;   /* FILEDESOBJECT */
     socketType       socketValue;    /* SOCKETOBJECT */
     rtlListType      listValue;      /* LISTOBJECT, EXPROBJECT */
     winType          winValue;       /* WINOBJECT */
