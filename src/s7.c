@@ -90,6 +90,7 @@ void raise_error2 (int exception_num, const_cstriType fileName, int line)
     } else {
       (void) raise_with_arguments(NULL, NULL);
     } /* if */
+    exception_number = exception_num;
     error_file = fileName;
     error_line = line;
   } /* raise_error2 */
