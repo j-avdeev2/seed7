@@ -666,15 +666,15 @@ objectType rfl_ipos (listType arguments)
     listType list_element;
     objectType searched_object;
     intType from_index;
-    intType result;
+    intType result = 1;
 
   /* rfl_ipos */
     isit_reflist(arg_1(arguments));
     isit_reference(arg_2(arguments));
+    isit_int(arg_3(arguments));
     list_element = take_reflist(arg_1(arguments));
     searched_object = take_reference(arg_2(arguments));
     from_index = take_int(arg_3(arguments));
-    result = 1;
     while (list_element != NULL && result < from_index) {
       list_element = list_element->next;
       result++;
@@ -791,14 +791,13 @@ objectType rfl_pos (listType arguments)
   {
     listType list_element;
     objectType searched_object;
-    intType result;
+    intType result = 1;
 
   /* rfl_pos */
     isit_reflist(arg_1(arguments));
     isit_reference(arg_2(arguments));
     list_element = take_reflist(arg_1(arguments));
     searched_object = take_reference(arg_2(arguments));
-    result = 1;
     while (list_element != NULL && list_element->obj != searched_object) {
       list_element = list_element->next;
       result++;
