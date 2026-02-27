@@ -640,7 +640,8 @@ objectType ref_path (listType arguments)
   /* ref_path */
     isit_reference(arg_1(arguments));
     path = refPath(take_reference(arg_1(arguments)));
-    if (path == NULL) {
+    if (unlikely(path == NULL)) {
+      /* refPath() already raised RANGE_ERROR */
       result = NULL;
     } else {
       result = bld_stri_temp(strCreate(path));
