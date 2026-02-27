@@ -387,6 +387,24 @@ objectType bln_or (listType arguments)
 
 
 /**
+ *  Convert to integer.
+ *  @return 0 if boolValue is FALSE, and
+ *          1 if boolValue is TRUE.
+ */
+objectType bln_ord (listType arguments)
+
+  {
+    intType ordinal;
+
+  /* bln_ord */
+    isit_bool(arg_1(arguments));
+    ordinal = take_bool(arg_1(arguments)) == SYS_TRUE_OBJECT;
+    return bld_int_temp(ordinal);
+  } /* bln_ord */
+
+
+
+/**
  *  Assign dest/arg_1 or source/arg_3 to dest/arg_1.
  *  This corresponds to dest := dest or source;
  *  The 'or' operation used here always evaluates the right argument.
@@ -406,24 +424,6 @@ objectType bln_or_assign (listType arguments)
     } /* if */
     return SYS_EMPTY_OBJECT;
   } /* bln_or_assign */
-
-
-
-/**
- *  Convert to integer.
- *  @return 0 if boolValue is FALSE, and
- *          1 if boolValue is TRUE.
- */
-objectType bln_ord (listType arguments)
-
-  {
-    intType ordinal;
-
-  /* bln_ord */
-    isit_bool(arg_1(arguments));
-    ordinal = take_bool(arg_1(arguments)) == SYS_TRUE_OBJECT;
-    return bld_int_temp(ordinal);
-  } /* bln_ord */
 
 
 
