@@ -125,6 +125,7 @@ const func category: (attr category) parse (in string: catName) is
     return category(catName);
 
 
+const category: ILLEGALOBJECT     is category("ILLEGALOBJECT");
 const category: SYMBOLOBJECT      is category("SYMBOLOBJECT");
 const category: DECLAREDOBJECT    is category("DECLAREDOBJECT");
 const category: FORWARDOBJECT     is category("FORWARDOBJECT");
@@ -169,7 +170,7 @@ const category: LOCALVOBJECT      is category("LOCALVOBJECT");
 const category: DATABASEOBJECT    is category("DATABASEOBJECT");
 const category: SQLSTMTOBJECT     is category("SQLSTMTOBJECT");
 const category: PROGOBJECT        is category("PROGOBJECT");
-const category: ILLEGALOBJECT     is category("ILLEGALOBJECT");
+const category: VOIDOBJECT        is category("VOIDOBJECT");
 
 
 (**

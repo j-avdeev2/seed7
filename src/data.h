@@ -26,6 +26,7 @@
 /********************************************************************/
 
 typedef enum {
+    ILLEGALOBJECT,
     SYMBOLOBJECT,        /* pos (file, line) - Symbol object        */
                          /*                    created by read_atom */
                          /*                    and read_name        */
@@ -81,7 +82,7 @@ typedef enum {
     DATABASEOBJECT,      /* databaseValue - Database                */
     SQLSTMTOBJECT,       /* sqlStmtValue -  SQL statement           */
     PROGOBJECT,          /* progValue -   Program                   */
-    ILLEGALOBJECT
+    VOIDOBJECT
   } objectCategory;
 
 typedef enum {

@@ -452,7 +452,7 @@ void printcategory (objectCategory category)
 
   { /* printcategory */
     logFunction(printf("printcategory\n"););
-    if (category >= SYMBOLOBJECT && category <= ILLEGALOBJECT) {
+    if (category >= ILLEGALOBJECT && category <= VOIDOBJECT) {
       prot_cstri(category_cstri(category));
     } else {
       prot_int((intType) category);
@@ -1565,7 +1565,7 @@ void trace1 (const_objectType traceobject)
       prot_cstri("*NULL_OBJECT*");
     } else if (!LEGAL_CATEGORY_FIELD(traceobject)) {
       prot_cstri("*CORRUPT_CATEGORY_FIELD*");
-    } else if (CATEGORY_OF_OBJ(traceobject) > ILLEGALOBJECT) {
+    } else if (CATEGORY_OF_OBJ(traceobject) > VOIDOBJECT) {
       prot_cstri("*ILLEGAL_CATEGORY_");
       printcategory(CATEGORY_OF_OBJ(traceobject));
       prot_cstri("*");
