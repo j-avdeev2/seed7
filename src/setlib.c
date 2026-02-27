@@ -657,36 +657,6 @@ objectType set_iconv3 (listType arguments)
 
 
 
-objectType set_idx (listType arguments)
-
-  {
-    setType aSet;
-    intType number;
-    intType position;
-    memSizeType bitset_index;
-    unsigned int bit_index;
-
-  /* set_idx */
-    isit_set(arg_1(arguments));
-    isit_int(arg_3(arguments));
-    aSet = take_set(arg_1(arguments));
-    number = take_int(arg_3(arguments));
-    position = bitset_pos(number);
-    if (position >= aSet->min_position && position <= aSet->max_position) {
-      bitset_index = bitsetIndex(aSet, position);
-      bit_index = ((unsigned int) number) & bitset_mask;
-      if (aSet->bitset[bitset_index] & (((bitSetType) 1) << bit_index)) {
-        return SYS_TRUE_OBJECT;
-      } else {
-        return SYS_FALSE_OBJECT;
-      } /* if */
-    } else {
-      return SYS_FALSE_OBJECT;
-    } /* if */
-  } /* set_idx */
-
-
-
 /**
  *  Add 'number' to the set 'set_to'.
  *  If 'number' is already in 'set_to' then 'set_to' stays unchanged.
