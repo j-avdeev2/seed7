@@ -205,37 +205,6 @@ objectType sql_bind_time (listType arguments)
 
 
 
-objectType sql_column_bigint (listType arguments)
-
-  {
-    bigIntType number;
-
-  /* sql_column_bigint */
-    isit_sqlstmt(arg_1(arguments));
-    isit_int(arg_2(arguments));
-    number = sqlColumnBigInt(take_sqlstmt(arg_1(arguments)),
-                             take_int(arg_2(arguments)));
-    return bld_bigint_temp(number);
-  } /* sql_column_bigint */
-
-
-
-objectType sql_column_bigrat (listType arguments)
-
-  { /* sql_column_bigrat */
-    isit_sqlstmt(arg_1(arguments));
-    isit_int(arg_2(arguments));
-    isit_bigint(arg_3(arguments));
-    isit_bigint(arg_4(arguments));
-    sqlColumnBigRat(take_sqlstmt(arg_1(arguments)),
-                    take_int(arg_2(arguments)),
-                    &arg_3(arguments)->value.bigIntValue,
-                    &arg_4(arguments)->value.bigIntValue);
-    return SYS_EMPTY_OBJECT;
-  } /* sql_column_bigrat */
-
-
-
 objectType sql_close (listType arguments)
 
   { /* sql_close */
@@ -291,6 +260,37 @@ objectType sql_cmp_stmt (listType arguments)
     } /* if */
     return bld_int_temp(signumValue);
   } /* sql_cmp_stmt */
+
+
+
+objectType sql_column_bigint (listType arguments)
+
+  {
+    bigIntType number;
+
+  /* sql_column_bigint */
+    isit_sqlstmt(arg_1(arguments));
+    isit_int(arg_2(arguments));
+    number = sqlColumnBigInt(take_sqlstmt(arg_1(arguments)),
+                             take_int(arg_2(arguments)));
+    return bld_bigint_temp(number);
+  } /* sql_column_bigint */
+
+
+
+objectType sql_column_bigrat (listType arguments)
+
+  { /* sql_column_bigrat */
+    isit_sqlstmt(arg_1(arguments));
+    isit_int(arg_2(arguments));
+    isit_bigint(arg_3(arguments));
+    isit_bigint(arg_4(arguments));
+    sqlColumnBigRat(take_sqlstmt(arg_1(arguments)),
+                    take_int(arg_2(arguments)),
+                    &arg_3(arguments)->value.bigIntValue,
+                    &arg_4(arguments)->value.bigIntValue);
+    return SYS_EMPTY_OBJECT;
+  } /* sql_column_bigrat */
 
 
 
