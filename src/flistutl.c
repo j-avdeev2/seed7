@@ -767,7 +767,7 @@ static memSizeType compute_hs (void)
         count.fnam_bytes + (memSizeType) count.fnam +
         count.symb_bytes + (memSizeType) count.symb +
         count.byte;
-    logFunction(printf("compute_hs --> "FMT_U_MEM "\n", bytes_total););
+    logFunction(printf("compute_hs --> " FMT_U_MEM "\n", bytes_total););
     return bytes_total;
   } /* compute_hs */
 #endif
